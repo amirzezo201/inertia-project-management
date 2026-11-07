@@ -32,8 +32,8 @@ export default function MyTasks(props: MyTasksProps) {
     <AppLayout
       header={
         <PageHeader
-          icon={<CircleUserRound />}
-          title="My tasks"
+          breadcrumbs={[{ title: "My tasks", icon: <CircleUserRound /> }]}
+          count={tasks.length}
           modes={modes}
           mode={mode}
         />
@@ -41,7 +41,7 @@ export default function MyTasks(props: MyTasksProps) {
     >
       <Head title="My tasks" />
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-1 flex-col">
         {tasks.length === 0 ? (
           <EmptyTasks
             description={

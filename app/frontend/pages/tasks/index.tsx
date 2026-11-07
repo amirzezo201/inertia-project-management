@@ -33,8 +33,8 @@ export default function TasksIndex(props: TasksIndexProps) {
     <AppLayout
       header={
         <PageHeader
-          icon={<ListTodo />}
-          title="All tasks"
+          breadcrumbs={[{ title: "All tasks", icon: <ListTodo /> }]}
+          count={tasks.length}
           modes={modes}
           mode={mode}
         />
@@ -42,7 +42,7 @@ export default function TasksIndex(props: TasksIndexProps) {
     >
       <Head title="All tasks" />
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
+      <div className="flex flex-1 flex-col">
         {tasks.length === 0 ? (
           <EmptyTasks description="Nothing in this view." />
         ) : (

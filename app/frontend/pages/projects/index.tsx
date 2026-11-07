@@ -41,8 +41,8 @@ export default function ProjectsIndex({
     <AppLayout
       header={
         <PageHeader
-          icon={<FolderKanban />}
-          title="All projects"
+          breadcrumbs={[{ title: "Projects", icon: <FolderKanban /> }]}
+          count={projects.length}
           actions={
             <NewProjectDialog
               projects={projects}

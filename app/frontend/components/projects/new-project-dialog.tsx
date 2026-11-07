@@ -1,7 +1,6 @@
 import { useForm } from "@inertiajs/react"
-import { Plus } from "lucide-react"
-import type { ReactNode } from "react"
-import { useState } from "react"
+import { Info, Plus, X } from "lucide-react"
+import { type ReactNode, useState } from "react"
 
 import { PillSelect } from "@/components/property-pills"
 import { StatusIcon } from "@/components/tasks/status-icon"
@@ -9,14 +8,14 @@ import { assigneePillOptions } from "@/components/tasks/task-pill-options"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogFooter,
-  DialogHeader,
-  DialogPanel,
   DialogPopup,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { projectsPath } from "@/routes"
 import type { Project, StatusCategory, UserSummary } from "@/types"
 
@@ -33,16 +32,14 @@ type ProjectForm = {
   default_status_name: string
 }
 
-// Huly's suggestion: uppercase the name, turn spaces and dashes into
-// underscores, keep the first five characters.
+// Plane's rule: keep the letters and digits of the name, up to 10. Ours must
+// also start with a letter, so leading digits are dropped.
 function suggestIdentifier(name: string) {
   return name
-    .toLocaleUpperCase()
-    .replaceAll("-", "_")
-    .replaceAll(" ", "_")
-    .replace(/[^A-Z0-9_]/g, "")
-    .replace(/^[^A-Z]+/, "")
-    .substring(0, 5)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .replace(/^[0-9]+/, "")
+    .slice(0, 10)
 }
 
 interface NewProjectDialogProps {
@@ -51,8 +48,9 @@ interface NewProjectDialogProps {
   defaultStatuses: DefaultStatus[]
 }
 
-// Huly's "New project" card: label/value rows for title, identifier (used in
-// task IDs, fixed after creation), description, default assignee and status.
+// Plane's "Create project" modal: a cover banner with the project logo,
+// "Project name" and "Project ID" side by side, a description, and the
+// Lead / default status chips.
 export function NewProjectDialog({
   projects,
   users,
@@ -98,29 +96,48 @@ export function NewProjectDialog({
         New project
       </DialogTrigger>
 
-      <DialogPopup className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>New project</DialogTitle>
-        </DialogHeader>
-
+      <DialogPopup className="max-w-2xl" showCloseButton={false}>
         <form
           onSubmit={(event) => {
             event.preventDefault()
             submit()
           }}
-          className="contents"
+          className="flex min-h-0 flex-col"
         >
-          <DialogPanel className="grid gap-4">
-            <Row
-              label="Project title"
+          {/* Cover with the logo tile overlapping its bottom edge. */}
+          <div className="relative mx-3 mt-3 h-32 rounded-lg bg-gradient-to-br from-primary/24 via-primary/8 to-muted">
+            <DialogTitle className="sr-only">Create project</DialogTitle>
+            <DialogClose
+              aria-label="Close"
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute top-2 right-2"
+                />
+              }
+            >
+              <X />
+            </DialogClose>
+            <span className="absolute -bottom-5 left-3 flex size-11 items-center justify-center rounded-md border bg-background font-semibold text-lg text-primary shadow-xs/5">
+              {(form.data.identifier || form.data.name || "P")
+                .charAt(0)
+                .toUpperCase()}
+            </span>
+          </div>
+
+          <div className="grid gap-x-2 gap-y-3 px-6 pt-9 pb-4 md:grid-cols-4">
+            <Field
+              className="md:col-span-3"
+              label="Project name"
               htmlFor="project_name"
               error={form.errors.name}
             >
               <Input
                 id="project_name"
                 value={form.data.name}
-                placeholder="New project"
-                autoFocus
+                placeholder="Project name"
+                maxLength={255}
                 onChange={(event) => {
                   const name = event.target.value
                   form.setData((data) => ({
@@ -132,22 +149,22 @@ export function NewProjectDialog({
                   }))
                 }}
               />
-            </Row>
+            </Field>
 
-            <Row
-              label="Identifier"
-              hint="Used in task IDs"
+            <Field
+              label="Project ID"
               htmlFor="project_identifier"
+              hint="Helps you identify tasks in the project uniquely. Max 10 characters."
               error={
                 identifierTaken
-                  ? "Project identifier already exists"
+                  ? "Project ID is already taken"
                   : form.errors.identifier
               }
             >
               <Input
                 id="project_identifier"
                 value={form.data.identifier}
-                placeholder="PRJCT"
+                placeholder="PROJECT"
                 maxLength={10}
                 className="font-mono uppercase"
                 onChange={(event) => {
@@ -155,31 +172,31 @@ export function NewProjectDialog({
                   form.setData("identifier", event.target.value.toUpperCase())
                 }}
               />
-            </Row>
+            </Field>
 
-            <Row label="Description" htmlFor="project_description">
-              <Input
-                id="project_description"
+            <div className="md:col-span-4">
+              <Textarea
+                aria-label="Description"
                 value={form.data.description}
-                placeholder="Add description…"
+                placeholder="Description"
+                rows={3}
                 onChange={(event) =>
                   form.setData("description", event.target.value)
                 }
               />
-            </Row>
+            </div>
 
-            <Row label="Default assignee">
+            <div className="flex flex-wrap gap-1.5 md:col-span-4">
               <PillSelect
-                label="Default assignee"
+                variant="chip"
+                label="Lead"
                 value={form.data.default_assignee_id}
-                options={assigneePillOptions(users)}
+                options={assigneePillOptions(users, "Lead")}
                 onChange={(value) => form.setData("default_assignee_id", value)}
               />
-            </Row>
-
-            <Row label="Default task status">
               <PillSelect
-                label="Default task status"
+                variant="chip"
+                label="Default status"
                 value={form.data.default_status_name}
                 options={defaultStatuses.map((status) => ({
                   value: status.name,
@@ -188,19 +205,15 @@ export function NewProjectDialog({
                 }))}
                 onChange={(value) => form.setData("default_status_name", value)}
               />
-            </Row>
-          </DialogPanel>
+            </div>
+          </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
+            <DialogClose render={<Button type="button" variant="outline" />}>
               Cancel
-            </Button>
+            </DialogClose>
             <Button type="submit" loading={form.processing} disabled={!canSave}>
-              Create
+              {form.processing ? "Creating" : "Create project"}
             </Button>
           </DialogFooter>
         </form>
@@ -209,40 +222,40 @@ export function NewProjectDialog({
   )
 }
 
-function Row({
+function Field({
   label,
-  hint,
   htmlFor,
+  hint,
   error,
+  className,
   children,
 }: {
   label: string
+  htmlFor: string
   hint?: string
-  htmlFor?: string
   error?: string | string[]
+  className?: string
   children: ReactNode
 }) {
   return (
-    <div className="grid items-start gap-1.5 sm:grid-cols-[10rem_1fr] sm:gap-4">
+    <div className={className}>
       <label
         htmlFor={htmlFor}
-        className="flex flex-col pt-1.5 font-medium text-sm"
+        className="mb-1 flex items-center gap-1 font-medium text-muted-foreground text-xs"
       >
         {label}
         {hint && (
-          <span className="font-normal text-muted-foreground text-xs">
-            {hint}
+          <span title={hint} className="inline-flex">
+            <Info className="size-3" aria-label={hint} />
           </span>
         )}
       </label>
-      <div className="flex flex-col gap-1">
-        {children}
-        {error && (
-          <p className="text-destructive-foreground text-sm">
-            {[error].flat().join(" ")}
-          </p>
-        )}
-      </div>
+      {children}
+      {error && (
+        <p className="mt-1 text-destructive-foreground text-xs">
+          {[error].flat().join(" ")}
+        </p>
+      )}
     </div>
   )
 }

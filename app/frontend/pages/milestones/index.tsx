@@ -3,6 +3,7 @@ import { Flag } from "lucide-react"
 
 import { NewMilestoneDialog } from "@/components/milestones/new-milestone-dialog"
 import { PageHeader } from "@/components/page-header"
+import { ProjectLogo } from "@/components/projects/project-logo"
 import { Badge } from "@/components/ui/badge"
 import {
   Empty,
@@ -18,7 +19,7 @@ import {
   milestoneBadgeVariant,
   milestoneStatusLabels,
 } from "@/lib/tasks"
-import { milestonePath, projectMilestonesPath } from "@/routes"
+import { milestonePath, projectMilestonesPath, projectPath } from "@/routes"
 import type { Milestone, ProjectProps } from "@/types"
 
 export default function MilestonesIndex({
@@ -39,15 +40,15 @@ export default function MilestonesIndex({
     <AppLayout
       header={
         <PageHeader
-          icon={<Flag />}
-          title={
-            <>
-              {project.name}{" "}
-              <span className="font-normal text-muted-foreground">
-                · Milestones
-              </span>
-            </>
-          }
+          breadcrumbs={[
+            {
+              title: project.name,
+              href: projectPath(project.id),
+              icon: <ProjectLogo project={project} />,
+            },
+            { title: "Milestones", icon: <Flag /> },
+          ]}
+          count={milestones.length}
           actions={<NewMilestoneDialog project={project} />}
           modes={modes}
           mode={mode}

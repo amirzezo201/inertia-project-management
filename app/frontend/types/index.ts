@@ -26,6 +26,14 @@ export interface SharedProps {
   auth: Auth
   // Projects listed in the navigator sidebar (null when signed out).
   sidebar_projects: Project[] | null
+  // Loaded on demand by the "New task" dialog (an optional prop).
+  task_form?: TaskFormOptions
+}
+
+export interface TaskFormOptions {
+  statuses: Status[]
+  milestones: Milestone[]
+  users: UserSummary[]
 }
 
 export interface User {
@@ -70,6 +78,7 @@ export type StatusCategory =
 
 export interface Status {
   id: number
+  project_id: number
   name: string
   category: StatusCategory
   color: string | null

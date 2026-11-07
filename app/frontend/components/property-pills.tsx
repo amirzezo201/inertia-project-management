@@ -26,10 +26,16 @@ const pillClassName =
 const ghostClassName =
   "h-8 min-h-8 w-full min-w-0 justify-start gap-2 rounded-md border-transparent bg-transparent px-2 text-sm shadow-none before:hidden hover:bg-accent dark:bg-transparent sm:h-8 sm:min-h-8 [&_[data-slot=select-icon]]:hidden [&_svg]:size-4"
 
-export type PillVariant = "pill" | "ghost"
+// Plane's small bordered property chips on list rows (24px tall).
+const chipClassName =
+  "h-6 min-h-6 w-auto min-w-0 gap-1 rounded-md px-1.5 text-xs font-normal sm:h-6 sm:min-h-6 sm:text-xs [&_[data-slot=select-icon]]:hidden [&_svg]:size-3.5 sm:[&_svg]:size-3.5"
+
+export type PillVariant = "pill" | "ghost" | "chip"
 
 function variantClassName(variant: PillVariant) {
-  return variant === "ghost" ? ghostClassName : pillClassName
+  if (variant === "ghost") return ghostClassName
+  if (variant === "chip") return chipClassName
+  return pillClassName
 }
 
 export interface PillOption {
@@ -45,6 +51,8 @@ interface PillSelectProps {
   onChange: (value: string) => void
   icon?: ReactNode
   variant?: PillVariant
+  // Show only the icon (e.g. priority on a list row); the label becomes a tooltip.
+  iconOnly?: boolean
 }
 
 export function PillSelect({
@@ -54,6 +62,7 @@ export function PillSelect({
   onChange,
   icon,
   variant = "pill",
+  iconOnly = false,
 }: PillSelectProps) {
   const selected = options.find((option) => option.value === value)
 
@@ -65,6 +74,7 @@ export function PillSelect({
     >
       <SelectTrigger
         aria-label={label}
+        title={iconOnly ? `${label}: ${selected?.label ?? "None"}` : undefined}
         size="sm"
         className={cn(
           variantClassName(variant),
@@ -72,7 +82,7 @@ export function PillSelect({
         )}
       >
         {selected?.icon ?? icon}
-        <SelectValue />
+        {iconOnly ? <SelectValue className="sr-only" /> : <SelectValue />}
       </SelectTrigger>
       <SelectPopup>
         {options.map((option) => (
@@ -93,6 +103,8 @@ interface DatePillProps {
   value: string
   onChange: (value: string) => void
   variant?: PillVariant
+  // Extra classes, e.g. a warning colour for an overdue due date.
+  className?: string
 }
 
 function toDate(value: string) {
@@ -110,6 +122,7 @@ export function DatePill({
   value,
   onChange,
   variant = "pill",
+  className,
 }: DatePillProps) {
   const [open, setOpen] = useState(false)
 
@@ -124,13 +137,14 @@ export function DatePill({
             className={cn(
               variantClassName(variant),
               !value && "text-muted-foreground",
+              className,
             )}
           />
         }
       >
         <CalendarDays />
         {value
-          ? variant === "ghost"
+          ? variant !== "pill"
             ? formatDate(value)
             : `${label}: ${formatDate(value)}`
           : variant === "ghost"
@@ -217,6 +231,75 @@ export function EstimatePill({
           autoFocus
           onChange={(event) => onChange(event.target.value)}
         />
+      </PopoverPopup>
+    </Popover>
+  )
+}
+
+interface DateRangePillProps {
+  from: string
+  to: string
+  onChange: (range: { from: string; to: string }) => void
+  variant?: PillVariant
+}
+
+// Plane's "Start date - End date" chip on cycles: one picker for a range.
+export function DateRangePill({
+  from,
+  to,
+  onChange,
+  variant = "chip",
+}: DateRangePillProps) {
+  const label =
+    from || to
+      ? `${from ? formatDate(from) : "Start date"} – ${to ? formatDate(to) : "End date"}`
+      : "Start date - End date"
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        aria-label="Dates"
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              variantClassName(variant),
+              !from && !to && "text-muted-foreground",
+            )}
+          />
+        }
+      >
+        <CalendarDays />
+        {label}
+      </PopoverTrigger>
+      <PopoverPopup align="start" className="w-auto">
+        <Calendar
+          mode="range"
+          numberOfMonths={2}
+          selected={{
+            from: from ? toDate(from) : undefined,
+            to: to ? toDate(to) : undefined,
+          }}
+          defaultMonth={from ? toDate(from) : undefined}
+          onSelect={(range: { from?: Date; to?: Date } | undefined) =>
+            onChange({
+              from: range?.from ? toValue(range.from) : "",
+              to: range?.to ? toValue(range.to) : "",
+            })
+          }
+        />
+        {(from || to) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 w-full"
+            onClick={() => onChange({ from: "", to: "" })}
+          >
+            <X />
+            Clear dates
+          </Button>
+        )}
       </PopoverPopup>
     </Popover>
   )

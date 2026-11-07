@@ -23,6 +23,7 @@ import type { ReactNode } from "react"
 import { useRef } from "react"
 
 import { mentionSuggestion } from "@/components/mention-suggestion"
+import { SlashCommands } from "@/components/slash-commands"
 import { cn } from "@/lib/utils"
 import type { UserSummary } from "@/types"
 
@@ -40,6 +41,9 @@ interface RichTextEditorProps {
   submitOn?: "enter" | "mod-enter"
   // People offered when typing "@"; leave out to disable mentions.
   mentions?: UserSummary[]
+  // Plane's "/" block menu (headings, lists, quote, code, divider). The
+  // placeholder then reads "Press '/' for commands" while focused.
+  slashCommands?: boolean
   // Rendered under the writing area with access to the editor (toolbars).
   footer?: (editor: Editor) => ReactNode
   // Classes for the writing area itself (height, padding).
@@ -64,6 +68,7 @@ export function RichTextEditor({
   onSubmit,
   submitOn = "mod-enter",
   mentions,
+  slashCommands = false,
   footer,
   editorClassName = "min-h-24",
 }: RichTextEditorProps) {
@@ -72,7 +77,8 @@ export function RichTextEditor({
   submitRef.current = onSubmit
   const mentionsRef = useRef(mentions ?? [])
   mentionsRef.current = mentions ?? []
-  const pickingMentionRef = useRef(false)
+  // True while the "@" or "/" menu is open, so Enter picks instead of submitting.
+  const menuOpenRef = useRef(false)
   const htmlRef = useRef(content ?? "")
 
   const editor = useEditor({
@@ -86,13 +92,19 @@ export function RichTextEditor({
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({
+        placeholder: ({ editor }) =>
+          slashCommands && (editor.isFocused || !editor.isEmpty)
+            ? "Press '/' for commands"
+            : placeholder,
+      }),
+      ...(slashCommands ? [SlashCommands(menuOpenRef)] : []),
       ...(mentions
         ? [
             Mention.configure({
               suggestion: mentionSuggestion(
                 () => mentionsRef.current,
-                pickingMentionRef,
+                menuOpenRef,
               ),
             }),
           ]
@@ -105,7 +117,7 @@ export function RichTextEditor({
         if (
           event.key !== "Enter" ||
           !submitRef.current ||
-          pickingMentionRef.current
+          menuOpenRef.current
         ) {
           return false
         }
@@ -125,7 +137,13 @@ export function RichTextEditor({
       htmlRef.current = serialize(editor.getHTML())
       onChange?.(htmlRef.current)
     },
-    onBlur: ({ editor }) => onBlur?.(serialize(editor.getHTML())),
+    onFocus: ({ editor }) => {
+      if (slashCommands) editor.view.dispatch(editor.state.tr)
+    },
+    onBlur: ({ editor }) => {
+      if (slashCommands) editor.view.dispatch(editor.state.tr)
+      onBlur?.(serialize(editor.getHTML()))
+    },
   })
 
   return (

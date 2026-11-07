@@ -1,29 +1,18 @@
 import { router, usePage } from "@inertiajs/react"
-import { ListFilter } from "lucide-react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { ActivityEntry } from "@/components/activity/activity-entry"
 import { CommentInput } from "@/components/activity/comment-input"
 import { Button } from "@/components/ui/button"
-import {
-  Menu,
-  MenuCheckboxItem,
-  MenuGroup,
-  MenuGroupLabel,
-  MenuPopup,
-  MenuRadioGroup,
-  MenuRadioItem,
-  MenuSeparator,
-  MenuTrigger,
-} from "@/components/ui/menu"
+import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { getItem, setItem } from "@/lib/storage"
 import type { ActivityEvent, UserSummary } from "@/types"
 
-type Filter = "all" | "attributes" | "comments"
+type Tab = "all" | "activity" | "comments"
 
+const TAB_KEY = "runwell:activity-tab"
 const NEWEST_FIRST_KEY = "runwell:activity-newest-first"
-// Huly groups messages from the same person posted within 15 minutes.
-const GROUP_WINDOW_MS = 15 * 60 * 1000
 
 interface ActivitySectionProps {
   activity: ActivityEvent[]
@@ -31,69 +20,72 @@ interface ActivitySectionProps {
   commentsPath: string
 }
 
-// Huly's document activity: changes and comments in one feed, a filter
-// (All / Attributes / Comments, newest first) and a comment box.
+// Plane's activity: All / Activity / Comments tabs, a sort toggle, a
+// timeline of changes and comment cards, and the comment box (below the
+// list when oldest-first, above it when newest-first).
 export function ActivitySection({
   activity,
   users,
   commentsPath,
 }: ActivitySectionProps) {
-  const [filter, setFilter] = useState<Filter>("all")
+  const [tab, setTab] = useState<Tab>("all")
   const [newestFirst, setNewestFirst] = useState(false)
 
-  useEffect(() => setNewestFirst(getItem(NEWEST_FIRST_KEY) === "true"), [])
+  useEffect(() => {
+    const savedTab = getItem(TAB_KEY)
+    if (
+      savedTab === "all" ||
+      savedTab === "activity" ||
+      savedTab === "comments"
+    )
+      setTab(savedTab)
+    setNewestFirst(getItem(NEWEST_FIRST_KEY) === "true")
+  }, [])
 
   const visible = activity.filter((event) =>
-    filter === "all"
+    tab === "all"
       ? true
-      : filter === "comments"
+      : tab === "comments"
         ? event.action === "comment_created"
         : event.action !== "comment_created",
   )
   const ordered = newestFirst ? [...visible].reverse() : visible
+  const showComposer = tab !== "activity"
   const composer = <CommentComposer commentsPath={commentsPath} users={users} />
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <h2 className="font-medium text-sm">Activity</h2>
-        <Menu>
-          <MenuTrigger
-            render={
-              <Button variant="ghost" size="icon-sm" className="ms-auto" />
-            }
-            aria-label="Filter activity"
-            title="Filter activity"
-          >
-            <ListFilter />
-          </MenuTrigger>
-          <MenuPopup align="end" className="min-w-44">
-            <MenuGroup>
-              <MenuGroupLabel>Show</MenuGroupLabel>
-              <MenuRadioGroup
-                value={filter}
-                onValueChange={(value) => setFilter(value as Filter)}
-              >
-                <MenuRadioItem value="all">All</MenuRadioItem>
-                <MenuRadioItem value="attributes">Attributes</MenuRadioItem>
-                <MenuRadioItem value="comments">Comments</MenuRadioItem>
-              </MenuRadioGroup>
-            </MenuGroup>
-            <MenuSeparator />
-            <MenuCheckboxItem
-              checked={newestFirst}
-              onCheckedChange={(checked) => {
-                setNewestFirst(checked)
-                setItem(NEWEST_FIRST_KEY, String(checked))
-              }}
-            >
-              Newest first
-            </MenuCheckboxItem>
-          </MenuPopup>
-        </Menu>
+    <section className="flex flex-col gap-6">
+      <div className="flex items-center gap-2 border-b">
+        <h2 className="sr-only">Activity</h2>
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            setTab(value as Tab)
+            setItem(TAB_KEY, String(value))
+          }}
+        >
+          <TabsList variant="underline">
+            <TabsTab value="all">All</TabsTab>
+            <TabsTab value="activity">Activity</TabsTab>
+            <TabsTab value="comments">Comments</TabsTab>
+          </TabsList>
+        </Tabs>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="ms-auto"
+          aria-label={newestFirst ? "Show oldest first" : "Show newest first"}
+          title={newestFirst ? "Newest first" : "Oldest first"}
+          onClick={() => {
+            setNewestFirst(!newestFirst)
+            setItem(NEWEST_FIRST_KEY, String(!newestFirst))
+          }}
+        >
+          {newestFirst ? <ArrowDownWideNarrow /> : <ArrowUpNarrowWide />}
+        </Button>
       </div>
 
-      {newestFirst && composer}
+      {showComposer && newestFirst && composer}
 
       {ordered.length > 0 ? (
         <ol className="flex flex-col">
@@ -102,36 +94,19 @@ export function ActivitySection({
               key={event.id}
               event={event}
               users={users}
-              grouped={canGroup(event, ordered[index - 1])}
+              last={index === ordered.length - 1}
             />
           ))}
         </ol>
       ) : (
-        <p className="text-muted-foreground text-sm">Nothing here yet.</p>
+        <p className="text-muted-foreground text-sm">
+          {tab === "comments" ? "No comments yet" : "No activity yet"}
+        </p>
       )}
 
-      {!newestFirst && composer}
+      {showComposer && !newestFirst && composer}
     </section>
   )
-}
-
-// Same rule as Huly's canGroupMessages: same author, same kind of entry,
-// same hour, less than 15 minutes apart. UTC hours keep server and browser
-// rendering identical.
-function canGroup(event: ActivityEvent, previous?: ActivityEvent) {
-  if (!previous) return false
-  if (event.creator_id !== previous.creator_id) return false
-  if (
-    (event.action === "comment_created") !==
-    (previous.action === "comment_created")
-  )
-    return false
-
-  const time = new Date(event.created_at).getTime()
-  const previousTime = new Date(previous.created_at).getTime()
-  const sameHour =
-    new Date(time).getUTCHours() === new Date(previousTime).getUTCHours()
-  return sameHour && Math.abs(time - previousTime) < GROUP_WINDOW_MS
 }
 
 function CommentComposer({

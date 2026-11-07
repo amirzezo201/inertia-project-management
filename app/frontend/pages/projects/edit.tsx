@@ -3,6 +3,7 @@ import { SlidersHorizontal } from "lucide-react"
 
 import { FormSelect } from "@/components/form-select"
 import { PageHeader } from "@/components/page-header"
+import { ProjectLogo } from "@/components/projects/project-logo"
 import { SettingsSection } from "@/components/settings-section"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -22,15 +23,14 @@ export default function ProjectEdit({
     <AppLayout
       header={
         <PageHeader
-          icon={<SlidersHorizontal />}
-          title={
-            <>
-              {project.name}{" "}
-              <span className="font-normal text-muted-foreground">
-                · Settings
-              </span>
-            </>
-          }
+          breadcrumbs={[
+            {
+              title: project.name,
+              href: projectPath(project.id),
+              icon: <ProjectLogo project={project} />,
+            },
+            { title: "Settings", icon: <SlidersHorizontal /> },
+          ]}
         />
       }
     >

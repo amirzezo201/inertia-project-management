@@ -82,7 +82,9 @@ export default function MilestoneShow(props: MilestoneShowProps) {
 
           <RichTextEditor
             content={milestone.description}
-            placeholder="Description (optional)"
+            placeholder="Click to add description"
+            slashCommands
+            mentions={props.users}
             onBlur={(html) => {
               if (html !== (milestone.description ?? ""))
                 save({ description: html })

@@ -3,15 +3,12 @@ import type { SuggestionProps } from "@tiptap/suggestion"
 import { type Ref, useImperativeHandle, useState } from "react"
 
 import { UserAvatar } from "@/components/activity/user-avatar"
+import type { SuggestionListHandle } from "@/components/suggestion-popup"
 import { cn } from "@/lib/utils"
 import type { UserSummary } from "@/types"
 
-export interface MentionListHandle {
-  onKeyDown: (event: KeyboardEvent) => boolean
-}
-
 type MentionListProps = SuggestionProps<UserSummary, MentionNodeAttrs> & {
-  ref?: Ref<MentionListHandle>
+  ref?: Ref<SuggestionListHandle>
 }
 
 // The people picker shown while typing "@name", like Huly's mention popup.

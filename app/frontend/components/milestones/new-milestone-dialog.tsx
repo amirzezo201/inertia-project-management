@@ -2,18 +2,20 @@ import { useForm } from "@inertiajs/react"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 
-import { DatePill, PillSelect } from "@/components/property-pills"
-import { RichTextEditor } from "@/components/rich-text-editor"
+import { ProjectLogo } from "@/components/projects/project-logo"
+import { DateRangePill, PillSelect } from "@/components/property-pills"
 import { milestoneStatusPillOptions } from "@/components/tasks/task-pill-options"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogFooter,
   DialogPopup,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { projectMilestonesPath } from "@/routes"
 import type { Project } from "@/types"
 
@@ -25,30 +27,22 @@ type MilestoneForm = {
   target_date: string
 }
 
-// Huly defaults a new milestone's target date to two weeks out.
-function twoWeeksFromToday() {
-  const date = new Date()
-  date.setDate(date.getDate() + 14)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+const BLANK: MilestoneForm = {
+  name: "",
+  description: "",
+  status: "planned",
+  start_date: "",
+  target_date: "",
 }
 
-// Huly's "New Milestone" card: project in the header, name, optional rich-text
-// description, and Status / Start date / Target date buttons.
+// Plane's "Create cycle" modal, for milestones: project, title, description,
+// a date-range chip and status.
 export function NewMilestoneDialog({ project }: { project: Project }) {
   const [open, setOpen] = useState(false)
-  const [editorKey, setEditorKey] = useState(0)
-  const form = useForm<MilestoneForm>({
-    name: "",
-    description: "",
-    status: "planned",
-    start_date: "",
-    target_date: "",
-  })
+  const form = useForm<MilestoneForm>(BLANK)
 
   function submit() {
     if (form.data.name.trim() === "" || form.processing) return
-
     form.post(projectMilestonesPath(project.id), {
       onSuccess: () => setOpen(false),
     })
@@ -59,15 +53,8 @@ export function NewMilestoneDialog({ project }: { project: Project }) {
       open={open}
       onOpenChange={(next) => {
         if (next) {
-          form.setData({
-            name: "",
-            description: "",
-            status: "planned",
-            start_date: "",
-            target_date: twoWeeksFromToday(),
-          })
+          form.setData(BLANK)
           form.clearErrors()
-          setEditorKey((key) => key + 1)
         }
         setOpen(next)
       }}
@@ -86,75 +73,77 @@ export function NewMilestoneDialog({ project }: { project: Project }) {
           className="flex min-h-0 flex-col"
         >
           <header className="flex items-center gap-2 px-6 pe-12 pt-5">
-            <Badge variant="outline" className="font-mono">
-              {project.identifier}
+            <Badge variant="outline" className="gap-1.5">
+              <ProjectLogo project={project} className="size-3.5" />
+              {project.name}
             </Badge>
-            <span className="text-muted-foreground text-sm">›</span>
-            <DialogTitle className="font-medium text-sm">
-              New milestone
+            <DialogTitle className="font-semibold text-base">
+              Create milestone
             </DialogTitle>
           </header>
 
-          <div className="flex flex-col gap-2 px-6 py-4">
-            <input
-              aria-label="Milestone name"
-              value={form.data.name}
-              onChange={(event) => form.setData("name", event.target.value)}
-              placeholder="Milestone name"
-              autoFocus
-              className="w-full bg-transparent font-semibold text-lg outline-none placeholder:text-muted-foreground/72"
+          <div className="flex flex-col gap-3 px-6 py-4">
+            <div>
+              <input
+                aria-label="Title"
+                value={form.data.name}
+                onChange={(event) => form.setData("name", event.target.value)}
+                placeholder="Title"
+                autoFocus
+                className="w-full bg-transparent font-medium text-xl outline-none placeholder:text-muted-foreground/72"
+              />
+              {form.errors.name && (
+                <p className="mt-1 text-destructive-foreground text-xs">
+                  Title {[form.errors.name].flat().join(" ")}
+                </p>
+              )}
+            </div>
+            <Textarea
+              aria-label="Description"
+              value={form.data.description}
+              onChange={(event) =>
+                form.setData("description", event.target.value)
+              }
+              placeholder="Description"
+              rows={3}
             />
-            {form.errors.name && (
-              <p className="text-destructive-foreground text-sm">
-                Name {[form.errors.name].flat().join(" ")}
+            <div className="flex flex-wrap gap-1.5">
+              <DateRangePill
+                from={form.data.start_date}
+                to={form.data.target_date}
+                onChange={({ from, to }) =>
+                  form.setData((data) => ({
+                    ...data,
+                    start_date: from,
+                    target_date: to,
+                  }))
+                }
+              />
+              <PillSelect
+                variant="chip"
+                label="Status"
+                value={form.data.status}
+                options={milestoneStatusPillOptions()}
+                onChange={(value) => form.setData("status", value)}
+              />
+            </div>
+            {form.errors.target_date && (
+              <p className="text-destructive-foreground text-xs">
+                End date {[form.errors.target_date].flat().join(" ")}
               </p>
             )}
-            <RichTextEditor
-              key={editorKey}
-              placeholder="Description (optional)"
-              onChange={(html) => form.setData("description", html)}
-            />
           </div>
-
-          <div className="flex flex-wrap gap-1.5 px-6 pb-4">
-            <PillSelect
-              label="Status"
-              value={form.data.status}
-              options={milestoneStatusPillOptions()}
-              onChange={(value) => form.setData("status", value)}
-            />
-            <DatePill
-              label="Start date"
-              value={form.data.start_date}
-              onChange={(value) => form.setData("start_date", value)}
-            />
-            <DatePill
-              label="Target date"
-              value={form.data.target_date}
-              onChange={(value) => form.setData("target_date", value)}
-            />
-          </div>
-
-          {form.errors.target_date && (
-            <p className="px-6 pb-3 text-destructive-foreground text-sm">
-              Target date {[form.errors.target_date].flat().join(" ")}
-            </p>
-          )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
+            <DialogClose render={<Button type="button" variant="outline" />}>
               Cancel
-            </Button>
+            </DialogClose>
             <Button
               type="submit"
               loading={form.processing}
               disabled={form.data.name.trim() === ""}
             >
-              Create
+              Create milestone
             </Button>
           </DialogFooter>
         </form>

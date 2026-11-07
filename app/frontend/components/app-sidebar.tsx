@@ -3,25 +3,28 @@ import {
   BookOpen,
   ChevronRight,
   CircleUserRound,
+  Ellipsis,
   Flag,
   Folder,
   FolderKanban,
-  LayoutGrid,
+  House,
+  Link2,
   ListTodo,
   type LucideIcon,
   Plus,
-  Settings,
   SlidersHorizontal,
 } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { NavFooter } from "@/components/nav-footer"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ProjectLogo } from "@/components/projects/project-logo"
+import { NewTaskDialog } from "@/components/tasks/new-task-dialog"
 import {
   Collapsible,
   CollapsiblePanel,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Menu, MenuPopup, MenuTrigger } from "@/components/ui/menu"
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu"
 import {
   Sidebar,
   SidebarContent,
@@ -32,14 +35,16 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { UserMenuContent } from "@/components/user-menu-content"
-import { useInitials } from "@/hooks/use-initials"
+import { toastManager } from "@/components/ui/toast"
+import { useClipboard } from "@/hooks/use-clipboard"
 import {
   dashboardPath,
   editProjectPath,
@@ -47,12 +52,9 @@ import {
   projectMilestonesPath,
   projectPath,
   projectsPath,
-  settingsProfilePath,
   tasksPath,
 } from "@/routes"
 import type { NavItem, Project } from "@/types"
-
-import AppLogoIcon from "./app-logo-icon"
 
 const footerNavItems: NavItem[] = [
   {
@@ -67,209 +69,128 @@ const footerNavItems: NavItem[] = [
   },
 ]
 
-// Huly's workbench: a narrow rail of apps on the far left, then the
-// navigator for the current app (My tasks, All tasks, your projects).
-export function AppSidebar() {
-  return (
-    <Sidebar collapsible="icon" variant="inset" className="overflow-hidden">
-      <div className="flex h-full w-full">
-        <AppRail />
-        <Navigator />
-      </div>
-    </Sidebar>
-  )
-}
-
 function usePath() {
   return usePage().url.split("?")[0]
 }
 
-interface RailApp {
-  title: string
-  href: string
-  icon: LucideIcon
-  isActive: (path: string) => boolean
-}
-
-const railApps: RailApp[] = [
-  {
-    title: "Tracker",
-    href: myTasksPath(),
-    icon: FolderKanban,
-    isActive: (path) =>
-      !path.startsWith(dashboardPath()) && !path.startsWith("/settings"),
-  },
-  {
-    title: "Dashboard",
-    href: dashboardPath(),
-    icon: LayoutGrid,
-    isActive: (path) => path.startsWith(dashboardPath()),
-  },
-]
-
-function AppRail() {
+// Plane's sidebar: a header with the collapse button, personal links,
+// a "Workspace" section, then "Projects", each expanding into its views.
+export function AppSidebar() {
   const path = usePath()
+  const { sidebar_projects, project: pageProject } = usePage<{
+    project?: Project
+  }>().props
+  const projects = sidebar_projects ?? []
+  // "New task" starts in the project being viewed, if any.
+  const currentProject = projects.find((p) => p.id === pageProject?.id)
 
   return (
     <Sidebar
-      collapsible="none"
-      className="w-(--sidebar-width-icon) shrink-0 border-sidebar-border border-r"
+      collapsible="offcanvas"
+      variant="inset"
+      // Sit below the app-wide top bar (h-10).
+      className="md:top-10 md:h-[calc(100svh-2.5rem)]"
     >
-      <SidebarHeader className="items-center">
-        <Link
-          href={dashboardPath()}
-          aria-label="Home"
-          className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
-        >
-          <AppLogoIcon className="size-5 fill-current text-white" />
-        </Link>
+      <SidebarHeader className="gap-3 px-3 pt-1">
+        <div className="flex items-center justify-between">
+          <span className="px-1 font-medium text-sm">Projects</span>
+          <SidebarTrigger aria-label="Collapse sidebar" />
+        </div>
+        <NewTaskDialog project={currentProject} trigger="sidebar" />
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup className="items-center px-0">
-          <SidebarMenu className="items-center">
-            {railApps.map((app) => (
-              <SidebarMenuItem key={app.title}>
-                <SidebarMenuButton
-                  render={
-                    <Link
-                      href={app.href}
-                      prefetch
-                      aria-label={app.title}
-                      title={app.title}
-                    />
-                  }
-                  isActive={app.isActive(path)}
-                  className="size-8 justify-center p-0"
-                >
-                  <app.icon />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="items-center">
-        <SidebarMenu className="items-center">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={
-                <Link
-                  href={settingsProfilePath()}
-                  aria-label="Settings"
-                  title="Settings"
-                />
-              }
-              isActive={path.startsWith("/settings")}
-              className="size-8 justify-center p-0"
-            >
-              <Settings />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <RailUserMenu />
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
-  )
-}
-
-function RailUserMenu() {
-  const { auth } = usePage().props
-  const getInitials = useInitials()
-
-  return (
-    <Menu>
-      <MenuTrigger
-        aria-label="Account"
-        className="flex size-8 items-center justify-center rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-      >
-        <Avatar className="size-7">
-          <AvatarImage src={auth.user.avatar} alt={auth.user.name} />
-          <AvatarFallback className="text-xs">
-            {getInitials(auth.user.name)}
-          </AvatarFallback>
-        </Avatar>
-      </MenuTrigger>
-      <MenuPopup className="min-w-56" side="right" align="end">
-        <UserMenuContent auth={auth} />
-      </MenuPopup>
-    </Menu>
-  )
-}
-
-function Navigator() {
-  const path = usePath()
-  const { sidebar_projects } = usePage().props
-  const projects = sidebar_projects ?? []
-
-  return (
-    <Sidebar collapsible="none" className="min-w-0 flex-1">
-      <SidebarHeader className="h-12 justify-center px-4">
-        <span className="font-semibold text-sm">Tracker</span>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
+        <SidebarGroup className="py-1">
+          <SidebarMenu className="gap-px">
+            <NavLink
+              title="Home"
+              href={dashboardPath()}
+              icon={House}
+              active={path === dashboardPath()}
+            />
             <NavLink
               title="My tasks"
               href={myTasksPath()}
               icon={CircleUserRound}
               active={path === myTasksPath()}
             />
-            <NavLink
-              title="All tasks"
-              href={tasksPath()}
-              icon={ListTodo}
-              active={path === tasksPath()}
-            />
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Your projects</SidebarGroupLabel>
-          <SidebarGroupAction
-            render={<Link href={projectsPath()} aria-label="New project" />}
-          >
-            <Plus />
-          </SidebarGroupAction>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects.map((project) => (
-                <ProjectNavItem
-                  key={project.id}
-                  project={project}
-                  path={path}
-                />
-              ))}
-              {projects.length === 0 && (
-                <p className="px-2 text-muted-foreground text-xs">
-                  No projects yet
-                </p>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Section label="Workspace">
+          <NavLink
+            title="Projects"
+            href={projectsPath()}
+            icon={FolderKanban}
+            active={path === projectsPath()}
+          />
+          <NavLink
+            title="All tasks"
+            href={tasksPath()}
+            icon={ListTodo}
+            active={path === tasksPath()}
+          />
+        </Section>
 
-        <SidebarGroup className="mt-auto">
-          <SidebarMenu>
-            <NavLink
-              title="All projects"
-              href={projectsPath()}
-              icon={FolderKanban}
-              active={path === projectsPath()}
-            />
-          </SidebarMenu>
-        </SidebarGroup>
+        <Section
+          label="Projects"
+          action={
+            <SidebarGroupAction
+              render={<Link href={projectsPath()} aria-label="New project" />}
+              className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover/section:opacity-100"
+            >
+              <Plus />
+            </SidebarGroupAction>
+          }
+        >
+          {projects.map((project) => (
+            <ProjectNavItem key={project.id} project={project} path={path} />
+          ))}
+          {projects.length === 0 && (
+            <p className="px-2 py-1 text-muted-foreground text-xs">
+              No projects yet
+            </p>
+          )}
+        </Section>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t">
         <NavFooter items={footerNavItems} />
       </SidebarFooter>
     </Sidebar>
+  )
+}
+
+// A collapsible sidebar section with a small muted heading (Plane's
+// "Workspace" / "Projects" sections).
+function Section({
+  label,
+  action,
+  children,
+}: {
+  label: string
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <Collapsible
+      defaultOpen
+      render={<SidebarGroup className="group/section py-1" />}
+    >
+      <SidebarGroupLabel
+        render={<CollapsibleTrigger />}
+        className="group/label cursor-pointer gap-1 font-semibold text-muted-foreground text-xs hover:text-foreground"
+      >
+        {label}
+        <ChevronRight className="size-3 opacity-0 transition-[transform,opacity] group-hover/label:opacity-100 group-data-panel-open/label:rotate-90" />
+      </SidebarGroupLabel>
+      {action}
+      <CollapsiblePanel>
+        <SidebarGroupContent>
+          <SidebarMenu className="gap-px">{children}</SidebarMenu>
+        </SidebarGroupContent>
+      </CollapsiblePanel>
+    </Collapsible>
   )
 }
 
@@ -297,7 +218,8 @@ function NavLink({
   )
 }
 
-// A project expands into its views, like Huly's Issues / Milestones entries.
+// A project row with its logo; it expands into Tasks / Milestones (with
+// Plane's guide line) and has a "…" menu on hover.
 function ProjectNavItem({ project, path }: { project: Project; path: string }) {
   const { props } = usePage<{ project?: Project }>()
   const isCurrent = props.project?.id === project.id
@@ -309,26 +231,20 @@ function ProjectNavItem({ project, path }: { project: Project; path: string }) {
       href: projectMilestonesPath(project.id),
       icon: Flag,
     },
-    {
-      title: "Settings",
-      href: editProjectPath(project.id),
-      icon: SlidersHorizontal,
-    },
   ]
 
   return (
     <Collapsible defaultOpen={isCurrent} render={<SidebarMenuItem />}>
       <CollapsibleTrigger
-        render={<SidebarMenuButton className="group/project" />}
+        render={<SidebarMenuButton className="group/project pe-8" />}
       >
-        <ChevronRight className="transition-transform group-data-panel-open/project:rotate-90" />
-        <span className="font-mono text-muted-foreground text-xs">
-          {project.identifier}
-        </span>
+        <ProjectLogo project={project} />
         <span>{project.name}</span>
+        <ChevronRight className="ms-auto size-3.5 text-muted-foreground opacity-0 transition-[transform,opacity] group-hover/project:opacity-100 group-data-panel-open/project:rotate-90" />
       </CollapsibleTrigger>
+      <ProjectMenu project={project} />
       <CollapsiblePanel>
-        <SidebarMenuSub>
+        <SidebarMenuSub className="me-0 gap-px">
           {views.map((view) => (
             <SidebarMenuSubItem key={view.title}>
               <SidebarMenuSubButton
@@ -343,5 +259,40 @@ function ProjectNavItem({ project, path }: { project: Project; path: string }) {
         </SidebarMenuSub>
       </CollapsiblePanel>
     </Collapsible>
+  )
+}
+
+function ProjectMenu({ project }: { project: Project }) {
+  const [, copy] = useClipboard()
+
+  return (
+    <Menu>
+      <MenuTrigger
+        render={<SidebarMenuAction showOnHover />}
+        aria-label={`${project.name} actions`}
+      >
+        <Ellipsis />
+      </MenuTrigger>
+      <MenuPopup side="right" align="start">
+        <MenuItem
+          onClick={async () => {
+            if (
+              await copy(
+                new URL(projectPath(project.id), window.location.origin).href,
+              )
+            ) {
+              toastManager.add({ title: "Link copied", type: "success" })
+            }
+          }}
+        >
+          <Link2 />
+          Copy link
+        </MenuItem>
+        <MenuItem render={<Link href={editProjectPath(project.id)} />}>
+          <SlidersHorizontal />
+          Settings
+        </MenuItem>
+      </MenuPopup>
+    </Menu>
   )
 }

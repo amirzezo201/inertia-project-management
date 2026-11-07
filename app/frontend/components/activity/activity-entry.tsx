@@ -1,70 +1,99 @@
 import { Link, router, usePage } from "@inertiajs/react"
-import { Ellipsis, Pencil, Trash2 } from "lucide-react"
-import { useState } from "react"
+import {
+  CalendarDays,
+  CircleDot,
+  Clock,
+  Ellipsis,
+  Flag,
+  ListTree,
+  MessageSquare,
+  Pencil,
+  Plus,
+  SignalHigh,
+  Trash2,
+  Type,
+  UserRound,
+} from "lucide-react"
+import { type ReactNode, useState } from "react"
+
 import { CommentInput } from "@/components/activity/comment-input"
 import { EditedMark, TimeAgo } from "@/components/activity/time-ago"
 import { UserAvatar } from "@/components/activity/user-avatar"
 import { Button } from "@/components/ui/button"
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu"
 import { formatDate, priorityLabels } from "@/lib/tasks"
-import { cn } from "@/lib/utils"
 import { commentPath, taskPath } from "@/routes"
 import type { ActivityEvent, Comment, TaskPriority, UserSummary } from "@/types"
 
 interface ActivityEntryProps {
   event: ActivityEvent
   users: UserSummary[]
-  // Follows an entry by the same person moments earlier: hide the header.
-  grouped: boolean
+  // The last entry has no connecting line below its icon.
+  last: boolean
 }
 
-export function ActivityEntry({ event, users, grouped }: ActivityEntryProps) {
+// One step on Plane's activity timeline: an icon box on the rail, then
+// either a change ("Ann set the status to Done · 2 hours ago") or a comment card.
+export function ActivityEntry({ event, users, last }: ActivityEntryProps) {
   const author = users.find((user) => user.id === event.creator_id)
 
-  if (event.comment) {
-    return (
-      <CommentEntry
-        comment={event.comment}
-        author={author}
-        users={users}
-        grouped={grouped}
-      />
-    )
-  }
-
   return (
-    <li
-      className={cn(
-        "flex items-start gap-3 text-sm",
-        grouped ? "py-0.5" : "pt-3 pb-0.5",
-      )}
-    >
-      <div className="flex w-7 shrink-0 justify-center">
-        {grouped ? null : <UserAvatar name={author?.name} className="size-5" />}
-      </div>
-      <p className="min-w-0 flex-1 text-muted-foreground">
-        {!grouped && (
-          <span className="font-medium text-foreground">
-            {author?.name ?? "Someone"}{" "}
-          </span>
-        )}
-        <EventDescription event={event} />
-        <TimeAgo
-          date={event.created_at}
-          className="ms-2 text-muted-foreground/72"
+    <li className="relative flex gap-3 pb-6 last:pb-0">
+      {!last && (
+        <span
+          aria-hidden
+          className="absolute top-8 bottom-0 left-[13px] w-px bg-border"
         />
-      </p>
+      )}
+      <span className="z-[1] flex size-7 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground shadow-xs/5 [&_svg]:size-3.5">
+        {iconFor(event)}
+      </span>
+
+      {event.comment ? (
+        <CommentCard comment={event.comment} author={author} users={users} />
+      ) : (
+        <p className="min-w-0 flex-1 pt-1 text-muted-foreground text-xs leading-5">
+          <span className="font-medium text-foreground">
+            {author?.name ?? "Someone"}
+          </span>{" "}
+          <EventDescription event={event} />{" "}
+          <TimeAgo
+            date={event.created_at}
+            className="text-muted-foreground/72"
+          />
+        </p>
+      )}
     </li>
   )
 }
 
+function iconFor(event: ActivityEvent): ReactNode {
+  if (event.action === "comment_created") return <MessageSquare />
+  if (event.action === "task_created") return <Plus />
+  if (event.action === "task_subtask_added") return <ListTree />
+
+  switch (event.particulars.attribute) {
+    case "status":
+      return <CircleDot />
+    case "priority":
+      return <SignalHigh />
+    case "assignee":
+      return <UserRound />
+    case "milestone":
+      return <Flag />
+    case "start_date":
+    case "due_date":
+      return <CalendarDays />
+    case "estimation":
+      return <Clock />
+    default:
+      return <Type />
+  }
+}
+
 const attributeLabels: Record<string, string> = {
-  title: "title",
-  description: "description",
   status: "status",
   priority: "priority",
-  assignee: "assignee",
-  milestone: "milestone",
   start_date: "start date",
   due_date: "due date",
   estimation: "estimation",
@@ -81,76 +110,92 @@ function formatValue(attribute: string, value: string | number | null) {
   return String(value)
 }
 
-function Value({ children }: { children: string }) {
+function Value({ children }: { children: ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>
 }
 
-// Huly-style sentences: "changed status from Todo to In progress".
+// Plane's phrasing: "set the status to Done.", "added a new assignee Ann".
 function EventDescription({ event }: { event: ActivityEvent }) {
   const { particulars } = event
 
   switch (event.action) {
     case "task_created":
-      return <>created the task</>
+      return <>created the task.</>
     case "task_subtask_added":
       return (
         <>
-          added sub-task{" "}
+          added the sub-task{" "}
           <Link
             href={taskPath(Number(particulars.subtask_id))}
             className="font-medium text-foreground hover:underline"
           >
             {particulars.identifier} {particulars.title}
           </Link>
+          .
         </>
       )
     case "task_updated": {
       const attribute = String(particulars.attribute)
-      const label = attributeLabels[attribute] ?? attribute.replace(/_/g, " ")
       const from = formatValue(attribute, particulars.from)
       const to = formatValue(attribute, particulars.to)
 
-      if (attribute === "description") return <>updated the description</>
-      if (attribute === "assignee") {
-        return to ? (
-          <>
-            assigned to <Value>{to}</Value>
-          </>
-        ) : (
-          <>
-            removed assignee <Value>{from ?? ""}</Value>
-          </>
-        )
+      switch (attribute) {
+        case "title":
+          return (
+            <>
+              set the name to <Value>{to}</Value>.
+            </>
+          )
+        case "description":
+          return <>updated the description.</>
+        case "assignee":
+          return to ? (
+            <>
+              added a new assignee <Value>{to}</Value>.
+            </>
+          ) : (
+            <>
+              removed the assignee <Value>{from}</Value>.
+            </>
+          )
+        case "milestone":
+          return to ? (
+            <>
+              added this task to the milestone <Value>{to}</Value>.
+            </>
+          ) : (
+            <>
+              removed this task from the milestone <Value>{from}</Value>.
+            </>
+          )
+        default: {
+          const label =
+            attributeLabels[attribute] ?? attribute.replace(/_/g, " ")
+          return to ? (
+            <>
+              set the {label} to <Value>{to}</Value>.
+            </>
+          ) : (
+            <>removed the {label}.</>
+          )
+        }
       }
-      if (!to) return <>removed the {label}</>
-      if (!from) {
-        return (
-          <>
-            set {label} to <Value>{to}</Value>
-          </>
-        )
-      }
-      return (
-        <>
-          changed {label} from <Value>{from}</Value> to <Value>{to}</Value>
-        </>
-      )
     }
     default:
-      return <>updated the task</>
+      return <>updated the task.</>
   }
 }
 
-function CommentEntry({
+// Plane's comment card: avatar, name "commented", time, (edited), a menu
+// for the author, and the rich-text body.
+function CommentCard({
   comment,
   author,
   users,
-  grouped,
 }: {
   comment: Comment
   author?: UserSummary
   users: UserSummary[]
-  grouped: boolean
 }) {
   const { auth } = usePage().props
   const [editing, setEditing] = useState(false)
@@ -171,79 +216,66 @@ function CommentEntry({
     )
   }
 
-  return (
-    <li className={cn("group/comment flex gap-3", grouped ? "pt-1" : "pt-4")}>
-      <div className="flex w-7 shrink-0 justify-center">
-        {!grouped && <UserAvatar name={author?.name} />}
-      </div>
+  if (editing) {
+    return (
       <div className="min-w-0 flex-1">
-        {!grouped && (
-          <div className="flex items-baseline gap-2 text-sm">
-            <span className="font-medium">{author?.name ?? "Someone"}</span>
-            <TimeAgo date={comment.created_at} />
-            {comment.edited_at && <EditedMark date={comment.edited_at} />}
-          </div>
-        )}
+        <CommentInput
+          users={users}
+          initialBody={comment.body}
+          autoFocus
+          sending={saving}
+          onSubmit={saveEdit}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
+    )
+  }
 
-        {editing ? (
-          <div className="mt-1">
-            <CommentInput
-              users={users}
-              initialBody={comment.body}
-              autoFocus
-              sending={saving}
-              onSubmit={saveEdit}
-              onCancel={() => setEditing(false)}
-            />
-          </div>
-        ) : (
-          <div className="relative">
-            <div
-              className="rich-text text-sm"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: comment bodies are sanitized server-side (RichDescription.sanitize)
-              dangerouslySetInnerHTML={{ __html: comment.body }}
-            />
-            {grouped && comment.edited_at && (
-              <EditedMark date={comment.edited_at} />
-            )}
-            {isOwn && (
-              <div className="absolute end-0 -top-7 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
-                <Menu>
-                  <MenuTrigger
-                    render={<Button variant="ghost" size="icon-xs" />}
-                    aria-label="Comment actions"
-                  >
-                    <Ellipsis />
-                  </MenuTrigger>
-                  <MenuPopup align="end">
-                    <MenuItem
-                      onClick={() => {
-                        setEditing(true)
-                      }}
-                    >
-                      <Pencil />
-                      Edit
-                    </MenuItem>
-                    <MenuItem
-                      variant="destructive"
-                      onClick={() => {
-                        if (confirm("Delete this comment?")) {
-                          router.delete(commentPath(comment.id), {
-                            preserveScroll: true,
-                          })
-                        }
-                      }}
-                    >
-                      <Trash2 />
-                      Delete
-                    </MenuItem>
-                  </MenuPopup>
-                </Menu>
-              </div>
-            )}
-          </div>
+  return (
+    <div className="min-w-0 flex-1 rounded-xl border bg-card p-3 shadow-xs/5">
+      <div className="flex items-center gap-2 text-xs">
+        <UserAvatar name={author?.name} className="size-4 text-[0.5rem]" />
+        <span className="font-medium">{author?.name ?? "Someone"}</span>
+        <span className="text-muted-foreground">commented</span>
+        <TimeAgo date={comment.created_at} />
+        {comment.edited_at && <EditedMark date={comment.edited_at} />}
+        {isOwn && (
+          <Menu>
+            <MenuTrigger
+              render={
+                <Button variant="ghost" size="icon-xs" className="ms-auto" />
+              }
+              aria-label="Comment actions"
+            >
+              <Ellipsis />
+            </MenuTrigger>
+            <MenuPopup align="end">
+              <MenuItem onClick={() => setEditing(true)}>
+                <Pencil />
+                Edit
+              </MenuItem>
+              <MenuItem
+                variant="destructive"
+                onClick={() => {
+                  if (confirm("Delete this comment?")) {
+                    router.delete(commentPath(comment.id), {
+                      preserveScroll: true,
+                    })
+                  }
+                }}
+              >
+                <Trash2 />
+                Delete
+              </MenuItem>
+            </MenuPopup>
+          </Menu>
         )}
       </div>
-    </li>
+      <div
+        className="rich-text mt-2 text-sm"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: comment bodies are sanitized server-side (RichDescription.sanitize)
+        dangerouslySetInnerHTML={{ __html: comment.body }}
+      />
+    </div>
   )
 }

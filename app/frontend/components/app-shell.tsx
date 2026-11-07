@@ -6,9 +6,14 @@ import * as storage from "@/lib/storage"
 interface AppShellProps {
   children: React.ReactNode
   variant?: "header" | "sidebar"
+  className?: string
 }
 
-export function AppShell({ children, variant = "header" }: AppShellProps) {
+export function AppShell({
+  children,
+  variant = "header",
+  className,
+}: AppShellProps) {
   const [isOpen, setIsOpen] = useState(
     () => storage.getItem("sidebar") !== "false",
   )
@@ -27,8 +32,9 @@ export function AppShell({ children, variant = "header" }: AppShellProps) {
       defaultOpen={isOpen}
       open={isOpen}
       onOpenChange={handleSidebarChange}
-      // Room for Huly's two columns: the app rail plus the navigator.
-      style={{ "--sidebar-width": "18rem" } as React.CSSProperties}
+      className={className}
+      // Plane's sidebar is 250px wide.
+      style={{ "--sidebar-width": "15.625rem" } as React.CSSProperties}
     >
       {children}
     </SidebarProvider>

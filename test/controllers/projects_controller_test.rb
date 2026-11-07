@@ -20,6 +20,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_component "projects/show"
     assert_equal [ "RUN-1", "RUN-2" ], inertia.props[:tasks].map { it[:identifier] }
     assert_equal 5, inertia.props[:statuses].size
+    assert_equal [ @project.id ], inertia.props[:statuses].map { it[:project_id] }.uniq
     assert_equal [ "Public launch" ], inertia.props[:milestones].map { it[:name] }
   end
 
