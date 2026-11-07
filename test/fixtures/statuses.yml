@@ -1,0 +1,29 @@
+runwell_backlog:
+  project: runwell
+  name: Backlog
+  category: backlog
+  position: 0
+
+runwell_todo:
+  project: runwell
+  name: Todo
+  category: unstarted
+  position: 1
+
+runwell_in_progress:
+  project: runwell
+  name: In Progress
+  category: started
+  position: 2
+
+runwell_done:
+  project: runwell
+  name: Done
+  category: completed
+  position: 3
+
+runwell_canceled:
+  project: runwell
+  name: Canceled
+  category: canceled
+  position: 4

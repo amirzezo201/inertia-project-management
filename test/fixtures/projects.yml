@@ -1,0 +1,7 @@
+runwell:
+  name: Runwell
+  identifier: RUN
+  description: Work tracked by people and agents.
+  last_task_number: 2
+  creator: one
+  default_status: runwell_backlog

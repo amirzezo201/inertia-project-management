@@ -1,0 +1,19 @@
+setup_ci:
+  project: runwell
+  status: runwell_todo
+  milestone: launch
+  assignee: two
+  creator: one
+  number: 1
+  title: Set up CI
+  priority: high
+  subtasks_count: 1
+
+write_docs:
+  project: runwell
+  parent: setup_ci
+  status: runwell_backlog
+  creator: one
+  number: 2
+  title: Document the CI pipeline
+  priority: no_priority
