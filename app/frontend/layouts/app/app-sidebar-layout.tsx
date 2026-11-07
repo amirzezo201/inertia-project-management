@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react"
+import type { PropsWithChildren, ReactNode } from "react"
 
 import { AppContent } from "@/components/app-content"
 import { AppShell } from "@/components/app-shell"
@@ -9,14 +9,16 @@ import type { BreadcrumbItem } from "@/types"
 export default function AppSidebarLayout({
   children,
   breadcrumbs = [],
+  header,
 }: PropsWithChildren<{
   breadcrumbs?: BreadcrumbItem[]
+  header?: ReactNode
 }>) {
   return (
     <AppShell variant="sidebar">
       <AppSidebar />
       <AppContent variant="sidebar" className="overflow-x-hidden">
-        <AppSidebarHeader breadcrumbs={breadcrumbs} />
+        {header ?? <AppSidebarHeader breadcrumbs={breadcrumbs} />}
         {children}
       </AppContent>
     </AppShell>

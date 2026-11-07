@@ -12,6 +12,12 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal "RUN-3", task.identifier
   end
 
+  test "a blank estimation is stored as zero" do
+    task = @project.tasks.create!(title: "No estimate", estimation: "", creator: users(:one))
+
+    assert_equal 0, task.estimation
+  end
+
   test "new tasks default to the project's status and assignee" do
     @project.update!(default_assignee: users(:two))
 
@@ -32,6 +38,19 @@ class TaskTest < ActiveSupport::TestCase
     assert task.errors.of_kind?(:milestone, :invalid)
   end
 
+  test "subtasks can be created together with their parent" do
+    task = @project.tasks.create!(
+      title: "Launch",
+      creator: users(:one),
+      subtasks_attributes: [ { title: "Write post", creator: users(:one) }, { title: "", creator: users(:one) }, { title: "Tweet", creator: users(:one) } ]
+    )
+
+    assert_equal "RUN-3", task.identifier
+    assert_equal [ "RUN-4", "RUN-5" ], task.subtasks.order(:number).map(&:identifier)
+    assert_equal [ @project ], task.subtasks.map(&:project).uniq
+    assert_equal 2, task.reload.subtasks_count
+  end
+
   test "a task cannot become a subtask of its own subtask" do
     parent = tasks(:setup_ci)
     parent.parent = tasks(:write_docs)
@@ -46,6 +65,14 @@ class TaskTest < ActiveSupport::TestCase
     assert_difference -> { parent.reload.subtasks_count }, 1 do
       @project.tasks.create!(title: "Add lint step", parent: parent, creator: users(:one))
     end
+  end
+
+  test "active and backlog follow the status category, like Huly's views" do
+    assert_equal [ tasks(:setup_ci) ], Task.active.to_a
+    assert_equal [ tasks(:write_docs) ], Task.backlog.to_a
+
+    tasks(:setup_ci).update!(status: statuses(:runwell_done))
+    assert_empty Task.active
   end
 
   test "closed reflects the status category" do

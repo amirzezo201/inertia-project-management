@@ -27,6 +27,8 @@ export function AppShell({ children, variant = "header" }: AppShellProps) {
       defaultOpen={isOpen}
       open={isOpen}
       onOpenChange={handleSidebarChange}
+      // Room for Huly's two columns: the app rail plus the navigator.
+      style={{ "--sidebar-width": "18rem" } as React.CSSProperties}
     >
       {children}
     </SidebarProvider>

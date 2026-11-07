@@ -16,6 +16,14 @@ Rails.application.routes.draw do
 
   get :dashboard, to: "dashboard#index"
 
+  resources :projects, except: [ :new ] do
+    resources :tasks, only: [ :create ]
+    resources :milestones, only: [ :index, :create ]
+  end
+  resources :tasks, only: [ :index, :show, :update, :destroy ]
+  resource :my_tasks, only: :show
+  resources :milestones, only: [ :show, :update, :destroy ]
+
   namespace :settings do
     resource :profile, only: [ :show, :update ]
     resource :password, only: [ :show, :update ]

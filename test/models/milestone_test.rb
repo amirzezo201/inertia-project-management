@@ -12,6 +12,20 @@ class MilestoneTest < ActiveSupport::TestCase
     assert milestone.invalid?
   end
 
+  test "counts completed tasks for progress" do
+    milestone = milestones(:launch)
+    assert_equal 0, milestone.completed_tasks_count
+
+    tasks(:setup_ci).update!(status: statuses(:runwell_done))
+    assert_equal 1, milestone.completed_tasks_count
+  end
+
+  test "closed covers completed and canceled milestones" do
+    beta = projects(:runwell).milestones.create!(name: "Beta", status: "canceled")
+
+    assert_equal [ beta ], Milestone.closed.to_a
+  end
+
   test "destroying a milestone keeps its tasks" do
     task = tasks(:setup_ci)
 

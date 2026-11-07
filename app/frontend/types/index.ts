@@ -24,6 +24,8 @@ export interface FlashData {
 
 export interface SharedProps {
   auth: Auth
+  // Projects listed in the navigator sidebar (null when signed out).
+  sidebar_projects: Project[] | null
 }
 
 export interface User {
@@ -42,4 +44,85 @@ export interface Session {
   user_agent: string
   ip_address: string
   created_at: string
+}
+
+export interface UserSummary {
+  id: number
+  name: string
+}
+
+export interface Project {
+  id: number
+  name: string
+  identifier: string
+  description: string | null
+  default_assignee_id: number | null
+  default_status_id: number | null
+  created_at: string
+}
+
+export type StatusCategory =
+  | "backlog"
+  | "unstarted"
+  | "started"
+  | "completed"
+  | "canceled"
+
+export interface Status {
+  id: number
+  name: string
+  category: StatusCategory
+  color: string | null
+  position: number
+}
+
+export type MilestoneStatus =
+  | "planned"
+  | "in_progress"
+  | "completed"
+  | "canceled"
+
+export interface Milestone {
+  id: number
+  project_id: number
+  name: string
+  description: string | null
+  status: MilestoneStatus
+  start_date: string | null
+  target_date: string | null
+  color: string | null
+  tasks_count: number
+  completed_tasks_count: number
+}
+
+export type TaskPriority = "no_priority" | "urgent" | "high" | "medium" | "low"
+
+export interface Task {
+  id: number
+  project_id: number
+  parent_id: number | null
+  status_id: number
+  milestone_id: number | null
+  assignee_id: number | null
+  creator_id: number
+  number: number
+  identifier: string
+  title: string
+  description: string | null
+  priority: TaskPriority
+  start_date: string | null
+  due_date: string | null
+  estimation: number
+  position: number
+  subtasks_count: number
+  created_at: string
+  updated_at: string
+}
+
+// Lookup props sent with every project page.
+export interface ProjectProps {
+  project: Project
+  statuses: Status[]
+  milestones: Milestone[]
+  users: UserSummary[]
 }

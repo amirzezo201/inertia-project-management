@@ -331,3 +331,71 @@
     font-family: var(--font-mono);
   }
 }
+
+/* Rich text written in the Tiptap editor (task and milestone descriptions). */
+@layer components {
+  .rich-text {
+    @apply leading-relaxed;
+
+    & > * + * {
+      @apply mt-2;
+    }
+    & h1 {
+      @apply font-semibold text-xl;
+    }
+    & h2 {
+      @apply font-semibold text-lg;
+    }
+    & h3 {
+      @apply font-semibold text-base;
+    }
+    & ul:not([data-type="taskList"]) {
+      @apply list-disc ps-5;
+    }
+    & ol {
+      @apply list-decimal ps-5;
+    }
+    & li > p {
+      @apply my-0.5;
+    }
+    & a {
+      @apply text-primary underline underline-offset-2;
+    }
+    & code {
+      @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em];
+    }
+    & pre {
+      @apply overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs;
+
+      & code {
+        @apply bg-transparent p-0;
+      }
+    }
+    & blockquote {
+      @apply border-s-2 ps-3 text-muted-foreground;
+    }
+    & hr {
+      @apply my-4 border-border;
+    }
+    & ul[data-type="taskList"] {
+      @apply ps-0;
+
+      & li {
+        @apply flex items-start gap-2;
+      }
+      & li > label {
+        @apply mt-1 flex shrink-0 select-none;
+      }
+      & li > div {
+        @apply flex-1;
+      }
+      & li[data-checked="true"] > div {
+        @apply text-muted-foreground line-through;
+      }
+    }
+    & p.is-editor-empty:first-child::before {
+      @apply pointer-events-none float-start h-0 text-muted-foreground;
+      content: attr(data-placeholder);
+    }
+  }
+}
