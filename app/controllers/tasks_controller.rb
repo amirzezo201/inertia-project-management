@@ -1,24 +1,35 @@
 # frozen_string_literal: true
 
 class TasksController < InertiaController
-  include ProjectScoped
-
   before_action :set_project, only: :create
   before_action :set_task, only: %i[ show update destroy ]
 
-  def index
-    tasks = filter_by_task_mode(Task.all).order(:project_id, :number)
+  # Huly-style view modes for task lists.
+  MODES = %w[ all active backlog ].freeze
 
-    render inertia: cross_project_props.merge(mode: task_mode, tasks: TaskResource.new(tasks).to_h)
+  def index
+    tasks = filter_by_mode(Task.all).order(:project_id, :number)
+
+    render inertia: {
+      tasks: Tasks::IndexResource.serialize(tasks),
+      mode: mode,
+      statuses: SimpleResources::Status.serialize(Status.order(:position)),
+      milestones: SimpleResources::Milestone.serialize(Milestone.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def show
-    render inertia: project_props(@task.project).merge(
-      task: TaskResource.new(@task).to_h,
-      parent: (TaskResource.new(@task.parent).to_h if @task.parent),
-      subtasks: TaskResource.new(@task.subtasks.order(:number)).to_h,
-      activity: EventResource.new(@task.activity).to_h
-    )
+    render inertia: {
+      task: Tasks::ShowResource.serialize(@task),
+      parent: (Tasks::IndexResource.serialize(@task.parent) if @task.parent),
+      subtasks: Tasks::IndexResource.serialize(@task.subtasks.order(:number)),
+      activity: Tasks::EventResource.serialize(@task.activity),
+      project: Projects::ShowResource.serialize(@task.project),
+      statuses: SimpleResources::Status.serialize(@task.project.statuses),
+      milestones: SimpleResources::Milestone.serialize(@task.project.milestones.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def create
@@ -45,8 +56,24 @@ class TasksController < InertiaController
   end
 
   private
+    def set_project
+      @project = Project.find(params[:project_id])
+    end
+
     def set_task
       @task = Task.find(params[:id])
+    end
+
+    def filter_by_mode(tasks)
+      case mode
+      when "active" then tasks.active
+      when "backlog" then tasks.backlog
+      else tasks
+      end
+    end
+
+    def mode
+      MODES.include?(params[:mode]) ? params[:mode] : "all"
     end
 
     def task_params

@@ -1,22 +1,30 @@
 # frozen_string_literal: true
 
 class ProjectsController < InertiaController
-  include ProjectScoped
-
   before_action :set_project, only: %i[ show edit update destroy ]
+
+  # Huly-style view modes for task lists.
+  MODES = %w[ all active backlog ].freeze
 
   def index
     render inertia: {
-      projects: ProjectResource.new(Project.order(:name)).to_h,
-      users: UserSummaryResource.new(User.order(:name)).to_h,
+      projects: Projects::IndexResource.serialize(Project.order(:name)),
+      users: OptionResource.serialize(User.order(:name)),
       default_statuses: Project::DEFAULT_STATUSES
     }
   end
 
   def show
-    tasks = filter_by_task_mode(@project.tasks).order(:position, :number)
+    tasks = filter_by_mode(@project.tasks).order(:position, :number)
 
-    render inertia: project_props(@project).merge(mode: task_mode, tasks: TaskResource.new(tasks).to_h)
+    render inertia: {
+      tasks: Tasks::IndexResource.serialize(tasks),
+      mode: mode,
+      project: Projects::ShowResource.serialize(@project),
+      statuses: SimpleResources::Status.serialize(@project.statuses),
+      milestones: SimpleResources::Milestone.serialize(@project.milestones.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def create
@@ -30,7 +38,12 @@ class ProjectsController < InertiaController
   end
 
   def edit
-    render inertia: project_props(@project)
+    render inertia: {
+      project: Projects::ShowResource.serialize(@project),
+      statuses: SimpleResources::Status.serialize(@project.statuses),
+      milestones: SimpleResources::Milestone.serialize(@project.milestones.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def update
@@ -49,6 +62,18 @@ class ProjectsController < InertiaController
   private
     def set_project
       @project = Project.find(params[:id])
+    end
+
+    def filter_by_mode(tasks)
+      case mode
+      when "active" then tasks.active
+      when "backlog" then tasks.backlog
+      else tasks
+      end
+    end
+
+    def mode
+      MODES.include?(params[:mode]) ? params[:mode] : "all"
     end
 
     def project_params

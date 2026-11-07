@@ -1,26 +1,32 @@
 # frozen_string_literal: true
 
 class MilestonesController < InertiaController
-  include ProjectScoped
-
   before_action :set_project, only: %i[ index create ]
   before_action :set_milestone, only: %i[ show update destroy ]
 
-  MODES = %w[ all planned active closed ].freeze
-
   def index
-    milestones = filter_by_mode(@project.milestones).order(:target_date)
+    milestones = @project.milestones.in_mode(mode).order(:target_date)
 
-    render inertia: project_props(@project).merge(mode: mode, milestones: MilestoneResource.new(milestones).to_h)
+    render inertia: {
+      milestones: Milestones::IndexResource.serialize(milestones),
+      mode: mode,
+      project: Projects::ShowResource.serialize(@project),
+      statuses: SimpleResources::Status.serialize(@project.statuses),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def show
     tasks = @milestone.tasks.order(:position, :number)
 
-    render inertia: project_props(@milestone.project).merge(
-      milestone: MilestoneResource.new(@milestone).to_h,
-      tasks: TaskResource.new(tasks).to_h
-    )
+    render inertia: {
+      milestone: Milestones::ShowResource.serialize(@milestone),
+      tasks: Tasks::IndexResource.serialize(tasks),
+      project: Projects::ShowResource.serialize(@milestone.project),
+      statuses: SimpleResources::Status.serialize(@milestone.project.statuses),
+      milestones: SimpleResources::Milestone.serialize(@milestone.project.milestones.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   def create
@@ -47,21 +53,16 @@ class MilestonesController < InertiaController
   end
 
   private
+    def set_project
+      @project = Project.find(params[:project_id])
+    end
+
     def set_milestone
       @milestone = Milestone.find(params[:id])
     end
 
     def mode
-      MODES.include?(params[:mode]) ? params[:mode] : "all"
-    end
-
-    def filter_by_mode(milestones)
-      case mode
-      when "planned" then milestones.planned
-      when "active" then milestones.in_progress
-      when "closed" then milestones.closed
-      else milestones
-      end
+      Milestone::MODES.include?(params[:mode]) ? params[:mode] : "all"
     end
 
     def milestone_params

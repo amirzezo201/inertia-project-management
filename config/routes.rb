@@ -23,6 +23,7 @@ Rails.application.routes.draw do
   resources :tasks, only: [ :index, :show, :update, :destroy ] do
     scope module: :tasks do
       resources :comments, only: [ :create, :update, :destroy ], shallow: true
+      resource :position, only: :update
     end
   end
   resource :my_tasks, only: :show

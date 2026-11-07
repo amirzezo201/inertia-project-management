@@ -4,6 +4,6 @@ class Settings::SessionsController < InertiaController
   def index
     sessions = Current.user.sessions.order(created_at: :desc)
 
-    render inertia: { sessions: SessionResource.new(sessions).to_h }
+    render inertia: { sessions: Settings::Sessions::IndexResource.serialize(sessions) }
   end
 end

@@ -2,12 +2,16 @@
 
 # Huly's "My issues": tasks assigned to or created by the current user.
 class MyTasksController < InertiaController
-  include ProjectScoped
-
   MODES = %w[ assigned created ].freeze
 
   def show
-    render inertia: cross_project_props.merge(mode: mode, tasks: TaskResource.new(tasks).to_h)
+    render inertia: {
+      tasks: Tasks::IndexResource.serialize(tasks),
+      mode: mode,
+      statuses: SimpleResources::Status.serialize(Status.order(:position)),
+      milestones: SimpleResources::Milestone.serialize(Milestone.order(:target_date)),
+      users: OptionResource.serialize(User.order(:name))
+    }
   end
 
   private

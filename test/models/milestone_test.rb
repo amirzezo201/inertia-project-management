@@ -26,6 +26,18 @@ class MilestoneTest < ActiveSupport::TestCase
     assert_equal [ beta ], Milestone.closed.to_a
   end
 
+  test "in_mode narrows milestones to a view mode" do
+    launch = milestones(:launch)
+    planned = projects(:runwell).milestones.create!(name: "Beta")
+    canceled = projects(:runwell).milestones.create!(name: "Gamma", status: "canceled")
+
+    assert_equal [ planned ], Milestone.in_mode("planned").to_a
+    assert_equal [ launch ], Milestone.in_mode("active").to_a
+    assert_equal [ canceled ], Milestone.in_mode("closed").to_a
+    assert_equal Milestone.count, Milestone.in_mode("all").count
+    assert_equal Milestone.count, Milestone.in_mode("bogus").count
+  end
+
   test "destroying a milestone keeps its tasks" do
     task = tasks(:setup_ci)
 

@@ -5,6 +5,9 @@ class Milestone < ApplicationRecord
 
   STATUSES = %w[ planned in_progress completed canceled ].freeze
 
+  # View modes for the milestones list.
+  MODES = %w[ all planned active closed ].freeze
+
   belongs_to :project, touch: true
 
   has_many :tasks, dependent: :nullify
@@ -12,6 +15,14 @@ class Milestone < ApplicationRecord
   enum :status, STATUSES.index_by(&:itself), default: "planned"
 
   scope :closed, -> { where(status: %w[ completed canceled ]) }
+  scope :in_mode, ->(mode) do
+    case mode
+    when "planned" then planned
+    when "active" then in_progress
+    when "closed" then closed
+    else all
+    end
+  end
 
   validates :name, presence: true
   validate :target_date_not_before_start_date

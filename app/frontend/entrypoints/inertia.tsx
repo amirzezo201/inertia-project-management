@@ -1,7 +1,6 @@
 import { createInertiaApp } from "@inertiajs/react"
-
-import { initializeTheme } from "@/hooks/use-appearance"
-import PersistentLayout from "@/layouts/persistent-layout"
+import PersistentLayout from "@/components/layout/PersistentLayout"
+import { initializeTheme } from "@/hooks/useAppearance"
 
 const appName = import.meta.env.VITE_APP_NAME ?? "RunwellForAgents"
 

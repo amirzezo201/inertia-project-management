@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Task < ApplicationRecord
-  include RichDescription, Eventable, Commentable
+  include RichDescription, Eventable, Commentable, Positioned
 
   belongs_to :project, touch: true
   belongs_to :parent, class_name: "Task", optional: true, counter_cache: :subtasks_count, touch: true
