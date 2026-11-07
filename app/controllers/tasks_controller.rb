@@ -8,10 +8,10 @@ class TasksController < InertiaController
   MODES = %w[ all active backlog ].freeze
 
   def index
-    tasks = filter_by_mode(Task.all).order(:project_id, :number)
+    @pagy, @tasks = pagy(:countless, filter_by_mode(Task.all).in_category_order)
 
     render inertia: {
-      tasks: Tasks::IndexResource.serialize(tasks),
+      tasks: InertiaRails.scroll(@pagy) { Tasks::IndexResource.serialize(@tasks) },
       mode: mode,
       statuses: SimpleResources::Status.serialize(Status.order(:position)),
       milestones: SimpleResources::Milestone.serialize(Milestone.order(:target_date)),

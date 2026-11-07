@@ -1,4 +1,4 @@
-import { Head } from "@inertiajs/react"
+import { Head, InfiniteScroll } from "@inertiajs/react"
 import { ListTodo } from "lucide-react"
 
 import { PageHeader } from "@/components/common/page/PageHeader"
@@ -9,6 +9,7 @@ import type { MilestoneOption, Option, Status, TaskSummary } from "@/types"
 import { TaskList } from "./components/TaskList"
 
 interface TasksIndexProps {
+  // One page at a time (InertiaRails.scroll); more load as the list scrolls.
   tasks: TaskSummary[]
   statuses: Status[]
   milestones: MilestoneOption[]
@@ -16,7 +17,7 @@ interface TasksIndexProps {
   mode: string
 }
 
-// Huly's "All issues": every task across projects.
+// Huly's "All issues": every task across projects, loaded a page at a time.
 export default function TasksIndex(props: TasksIndexProps) {
   const { tasks, mode } = props
   const modes = [
@@ -34,7 +35,6 @@ export default function TasksIndex(props: TasksIndexProps) {
       header={
         <PageHeader
           breadcrumbs={[{ title: "All tasks", icon: <ListTodo /> }]}
-          count={tasks.length}
           modes={modes}
           mode={mode}
         />
@@ -46,7 +46,9 @@ export default function TasksIndex(props: TasksIndexProps) {
         {tasks.length === 0 ? (
           <TasksEmptyState description="Nothing in this view." />
         ) : (
-          <TaskList {...props} groupBy="category" />
+          <InfiniteScroll data="tasks">
+            <TaskList {...props} groupBy="category" />
+          </InfiniteScroll>
         )}
       </div>
     </AppLayout>

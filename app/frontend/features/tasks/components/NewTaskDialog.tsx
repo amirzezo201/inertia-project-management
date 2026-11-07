@@ -364,7 +364,7 @@ export function NewTaskDialog({
               />
               <PillSelect
                 variant="chip"
-                label="MilestoneOption"
+                label="Milestone"
                 value={form.data.milestone_id}
                 options={milestonePillOptions(projectMilestones)}
                 onChange={(value) => form.setData("milestone_id", value)}

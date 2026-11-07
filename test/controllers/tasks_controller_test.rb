@@ -14,6 +14,29 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "RUN-2" ], inertia.props[:tasks].map { it[:identifier] }
   end
 
+  test "index sends one page of tasks" do
+    30.times { |i| projects(:runwell).tasks.create!(title: "Task #{i}", creator: users(:one)) }
+
+    get tasks_path
+
+    assert_equal Pagy::OPTIONS[:limit], inertia.props[:tasks].size
+  end
+
+  test "index sends the next page on request" do
+    30.times { |i| projects(:runwell).tasks.create!(title: "Task #{i}", creator: users(:one)) }
+
+    get tasks_path(page: 2)
+
+    assert_equal Task.count - Pagy::OPTIONS[:limit], inertia.props[:tasks].size
+  end
+
+  test "index past the last page is empty" do
+    get tasks_path(page: 9)
+
+    assert_response :success
+    assert_empty inertia.props[:tasks]
+  end
+
   test "show renders the task with its subtasks" do
     get task_path(@task)
 

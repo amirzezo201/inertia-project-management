@@ -41,7 +41,7 @@ function assigneeChipOptions(users: Option[]): PillOption[] {
 function milestoneChipOptions(milestones: MilestoneOption[]): PillOption[] {
   const icon = <Flag className="text-muted-foreground" />
   return [
-    { value: "", label: "MilestoneOption", icon },
+    { value: "", label: "Milestone", icon },
     ...milestones.map((m) => ({ value: String(m.id), label: m.name, icon })),
   ]
 }
@@ -129,7 +129,7 @@ export function TaskProperties({
         <div className={wrap ? undefined : "hidden lg:block"}>
           <PillSelect
             variant="chip"
-            label="MilestoneOption"
+            label="Milestone"
             value={String(task.milestone_id ?? "")}
             options={milestoneChipOptions(projectMilestones)}
             onChange={(value) => saveTask(task, { milestone_id: value })}

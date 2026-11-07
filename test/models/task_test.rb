@@ -82,4 +82,12 @@ class TaskTest < ActiveSupport::TestCase
     task.update!(status: statuses(:runwell_done))
     assert task.closed?
   end
+
+  test "in_category_order lists tasks the way the board groups them" do
+    started = projects(:runwell).tasks.create!(title: "Started", status: statuses(:runwell_in_progress), creator: users(:one))
+
+    ordered = Task.in_category_order.to_a
+
+    assert_equal [ tasks(:write_docs), tasks(:setup_ci), started ], ordered
+  end
 end

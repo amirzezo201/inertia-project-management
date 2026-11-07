@@ -19,6 +19,11 @@ class Task < ApplicationRecord
   scope :in_categories, ->(*categories) { joins(:status).where(statuses: { category: categories }) }
   scope :active, -> { in_categories("unstarted", "started") }
   scope :backlog, -> { in_categories("backlog") }
+  # Backlog, Todo, In progress, Done, Canceled: the order lists group them in,
+  # so a paged list only ever adds rows to its last group.
+  scope :in_category_order, -> do
+    joins(:status).in_order_of(:"statuses.category", Status::CATEGORIES, filter: false).order(:project_id, :number)
+  end
 
   normalizes :estimation, with: -> { it.presence || 0 }, apply_to_nil: true
 

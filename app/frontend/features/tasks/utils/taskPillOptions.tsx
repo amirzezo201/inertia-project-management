@@ -47,7 +47,7 @@ export function assigneePillOptions(
 
 export function milestonePillOptions(
   milestones: MilestoneOption[],
-  emptyLabel = "MilestoneOption",
+  emptyLabel = "Milestone",
 ): PillOption[] {
   const icon = <Flag className="size-4 text-muted-foreground" />
   return [
