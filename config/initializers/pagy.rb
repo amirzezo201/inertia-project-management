@@ -12,11 +12,6 @@
 # Pagy::OPTIONS[:client_limit] = 100    # The client is allowed to request a limit up to 100
 # Pagy::OPTIONS[:jsonapi]   = true   # Use JSON:API compliant URLs
 
-# Infinite-scroll lists (InertiaRails.scroll) load this many rows per page, and a
-# page past the end is empty rather than an error, as in Behnke.
-Pagy::OPTIONS[:limit] = 25
-Pagy::OPTIONS[:overflow] = :empty_page
-
 Pagy::OPTIONS.freeze
 
 ############ JS and CSS Resources ##########################################################

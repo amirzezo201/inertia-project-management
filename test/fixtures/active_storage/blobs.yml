@@ -1,0 +1,3 @@
+notes: <%= ActiveStorage::FixtureSet.blob filename: "notes.txt" %>
+pixel: <%= ActiveStorage::FixtureSet.blob filename: "pixel.png" %>
+huge: <%= ActiveStorage::FixtureSet.blob filename: "notes.txt", byte_size: 30.megabytes %>

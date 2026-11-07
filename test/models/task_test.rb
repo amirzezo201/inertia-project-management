@@ -59,6 +59,29 @@ class TaskTest < ActiveSupport::TestCase
     assert parent.errors.of_kind?(:parent, :invalid)
   end
 
+  test "a subtask cannot have subtasks of its own" do
+    nested = @project.tasks.new(title: "Too deep", parent: tasks(:write_docs), creator: users(:one))
+
+    assert nested.invalid?
+    assert nested.errors.of_kind?(:parent, :invalid)
+  end
+
+  test "a task with subtasks cannot become a subtask" do
+    other = @project.tasks.create!(title: "Another parent", creator: users(:one))
+    parent = tasks(:setup_ci)
+    parent.parent = other
+
+    assert parent.invalid?
+    assert parent.errors.of_kind?(:parent, :invalid)
+  end
+
+  test "subtasks nested before the one-level rule stay editable" do
+    nested = @project.tasks.create!(title: "Old nested", creator: users(:one))
+    nested.update_column(:parent_id, tasks(:write_docs).id)
+
+    assert nested.update(title: "Renamed")
+  end
+
   test "subtasks are counted on the parent" do
     parent = tasks(:setup_ci)
 
@@ -81,13 +104,5 @@ class TaskTest < ActiveSupport::TestCase
 
     task.update!(status: statuses(:runwell_done))
     assert task.closed?
-  end
-
-  test "in_category_order lists tasks the way the board groups them" do
-    started = projects(:runwell).tasks.create!(title: "Started", status: statuses(:runwell_in_progress), creator: users(:one))
-
-    ordered = Task.in_category_order.to_a
-
-    assert_equal [ tasks(:write_docs), tasks(:setup_ci), started ], ordered
   end
 end

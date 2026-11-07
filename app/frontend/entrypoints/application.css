@@ -464,6 +464,13 @@
     & hr {
       @apply my-4 border-border;
     }
+    /* Images embedded from the task's attachments. */
+    & img {
+      @apply h-auto max-w-full rounded-lg;
+    }
+    & img.ProseMirror-selectednode {
+      @apply outline-2 outline-ring outline-offset-2;
+    }
     & ul[data-type="taskList"] {
       @apply ps-0;
 

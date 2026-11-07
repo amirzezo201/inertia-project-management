@@ -1,6 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react"
 
-import { RichTextEditor } from "@/components/common/editor/RichTextEditor"
+import {
+  type EmbeddableFile,
+  RichTextEditor,
+} from "@/components/common/editor/RichTextEditor"
 import { cn } from "@/lib/utils"
 import type { Option, Task } from "@/types"
 
@@ -11,10 +14,14 @@ export function TaskDescriptionField({
   task,
   users,
   onSave,
+  uploadFiles,
 }: {
   task: Task
   users: Option[]
   onSave: (description: string) => void
+  // Pasting or dropping an image into the description attaches it to the
+  // task and embeds it.
+  uploadFiles: (files: File[]) => Promise<EmbeddableFile[]>
 }) {
   const contentRef = useRef<HTMLDivElement>(null)
   const [overflows, setOverflows] = useState(false)
@@ -46,6 +53,8 @@ export function TaskDescriptionField({
           editorClassName="min-h-16"
           slashCommands
           mentions={users}
+          uploadFiles={uploadFiles}
+          onEmbed={(html) => onSave(html)}
           onBlur={(html) => {
             if (html !== (task.description ?? "")) onSave(html)
           }}

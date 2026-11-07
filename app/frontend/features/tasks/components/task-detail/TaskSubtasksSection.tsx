@@ -6,7 +6,8 @@ import { TaskRow } from "../TaskRow"
 import { TaskSectionHeading } from "./TaskSectionHeading"
 
 // The Sub-tasks section: a collapsible heading counting the done ones, an add
-// button, then the sub-tasks as list rows (or a dashed hint when there are none).
+// button, then the sub-tasks as list rows. With none, the heading row and its
+// + button are all there is.
 export function TaskSubtasksSection(props: TaskShowProps) {
   const { task, statuses, milestones, users, subtasks } = props
   const [open, setOpen] = useState(true)
@@ -26,30 +27,25 @@ export function TaskSubtasksSection(props: TaskShowProps) {
           open={open}
           onToggle={() => setOpen(!open)}
         />
-        {open && <NewTaskDialog {...props} parent={task} trigger="icon" />}
+        {/* Sub-tasks are one level deep, so a sub-task gets no add button. */}
+        {open && !task.parent_id && (
+          <NewTaskDialog {...props} parent={task} trigger="icon" />
+        )}
       </div>
 
-      {open && (
-        <div className="mt-3">
-          {subtasks.length === 0 ? (
-            <p className="rounded-md border border-dashed p-4 text-center text-muted-foreground text-sm">
-              Break this task down: add a sub-task with the + button.
-            </p>
-          ) : (
-            <ul className="overflow-hidden rounded-lg border">
-              {subtasks.map((subtask) => (
-                <TaskRow
-                  key={subtask.id}
-                  task={subtask}
-                  statuses={statuses}
-                  milestones={milestones}
-                  users={users}
-                  hideMilestone
-                />
-              ))}
-            </ul>
-          )}
-        </div>
+      {open && subtasks.length > 0 && (
+        <ul className="mt-3 overflow-hidden rounded-lg border">
+          {subtasks.map((subtask) => (
+            <TaskRow
+              key={subtask.id}
+              task={subtask}
+              statuses={statuses}
+              milestones={milestones}
+              users={users}
+              hideMilestone
+            />
+          ))}
+        </ul>
       )}
     </section>
   )

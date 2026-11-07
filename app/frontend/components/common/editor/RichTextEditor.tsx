@@ -1,3 +1,4 @@
+import { Image } from "@tiptap/extension-image"
 import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { Mention } from "@tiptap/extension-mention"
 import { Placeholder } from "@tiptap/extensions"
@@ -34,6 +35,18 @@ interface RichTextEditorProps {
   footer?: (editor: Editor) => ReactNode
   // Classes for the writing area itself (height, padding).
   editorClassName?: string
+  // Files pasted or dropped into the text are uploaded through this; the
+  // images among them are embedded where they landed. Leave out to disable.
+  uploadFiles?: (files: File[]) => Promise<EmbeddableFile[]>
+  // Called with the document after images were embedded, so it can be saved
+  // without waiting for the editor to lose focus.
+  onEmbed?: (html: string) => void
+}
+
+export interface EmbeddableFile {
+  url: string
+  filename: string
+  contentType: string
 }
 
 // Match the server: drop trailing empty paragraphs; an empty document is "".
@@ -57,6 +70,8 @@ export function RichTextEditor({
   slashCommands = false,
   footer,
   editorClassName = "min-h-24",
+  uploadFiles,
+  onEmbed,
 }: RichTextEditorProps) {
   // The editor is configured once; read the latest values through refs.
   const submitRef = useRef(onSubmit)
@@ -66,6 +81,34 @@ export function RichTextEditor({
   // True while the "@" or "/" menu is open, so Enter picks instead of submitting.
   const menuOpenRef = useRef(false)
   const htmlRef = useRef(content ?? "")
+  const uploadFilesRef = useRef(uploadFiles)
+  uploadFilesRef.current = uploadFiles
+  const onEmbedRef = useRef(onEmbed)
+  onEmbedRef.current = onEmbed
+  const editorRef = useRef<Editor | null>(null)
+
+  // Uploads the files, then embeds the images among them at `position` (or at
+  // the caret), and hands the new document to onEmbed.
+  async function embedFiles(files: File[], position: number | null) {
+    const uploaded = (await uploadFilesRef.current?.(files)) ?? []
+    const images = uploaded.filter((file) =>
+      file.contentType.startsWith("image/"),
+    )
+    const editor = editorRef.current
+    if (!editor || images.length === 0) return
+
+    editor
+      .chain()
+      .insertContentAt(
+        position ?? editor.state.selection.to,
+        images.map((image) => ({
+          type: "image",
+          attrs: { src: image.url, alt: image.filename },
+        })),
+      )
+      .run()
+    onEmbedRef.current?.(htmlRef.current)
+  }
 
   const editor = useEditor({
     // SSR is enabled for Inertia pages; render the editor on the client only.
@@ -78,6 +121,7 @@ export function RichTextEditor({
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      ...(uploadFiles ? [Image.configure({ allowBase64: false })] : []),
       Placeholder.configure({
         placeholder: ({ editor }) =>
           slashCommands && (editor.isFocused || !editor.isEmpty)
@@ -99,6 +143,24 @@ export function RichTextEditor({
     content: content ?? "",
     editorProps: {
       attributes: { class: cn("rich-text outline-none", editorClassName) },
+      handlePaste: (_view, event) => {
+        const files = Array.from(event.clipboardData?.files ?? [])
+        if (!uploadFilesRef.current || files.length === 0) return false
+        event.preventDefault()
+        void embedFiles(files, null)
+        return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        const files = Array.from(event.dataTransfer?.files ?? [])
+        if (moved || !uploadFilesRef.current || files.length === 0) return false
+        event.preventDefault()
+        const position = view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        })
+        void embedFiles(files, position?.pos ?? null)
+        return true
+      },
       handleKeyDown: (_view, event) => {
         if (
           event.key !== "Enter" ||
@@ -131,6 +193,8 @@ export function RichTextEditor({
       onBlur?.(serialize(editor.getHTML()))
     },
   })
+
+  editorRef.current = editor
 
   return (
     <div className={cn("text-sm", className)}>

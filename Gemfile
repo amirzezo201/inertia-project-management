@@ -32,7 +32,7 @@ gem "kamal", require: false, group: [ :development, :deploy ]
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 1.2"
 
 # Use Vite in Rails and bring joy to your JavaScript experience [https://github.com/ElMassimo/vite_ruby]
 gem "vite_rails"

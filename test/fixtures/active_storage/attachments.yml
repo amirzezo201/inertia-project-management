@@ -1,0 +1,4 @@
+setup_ci_notes:
+  name: attachments
+  record: setup_ci (Task)
+  blob: notes

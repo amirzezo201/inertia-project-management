@@ -5,7 +5,6 @@ import {
   Folder,
   FolderKanban,
   House,
-  ListTodo,
   Plus,
 } from "lucide-react"
 import AppLogoIcon from "@/components/brand/AppLogoIcon"
@@ -20,7 +19,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { NewTaskDialog } from "@/features/tasks/components/NewTaskDialog"
-import { dashboardPath, myTasksPath, projectsPath, tasksPath } from "@/routes"
+import { dashboardPath, myTasksPath, projectsPath } from "@/routes"
 import type { NavItem, ProjectOption } from "@/types"
 import { AppSidebarNavLink } from "./AppSidebarNavLink"
 import { AppSidebarProjectItem } from "./AppSidebarProjectItem"
@@ -103,12 +102,6 @@ export function AppSidebar() {
             href={projectsPath()}
             icon={FolderKanban}
             active={path === projectsPath()}
-          />
-          <AppSidebarNavLink
-            title="All tasks"
-            href={tasksPath()}
-            icon={ListTodo}
-            active={path === tasksPath()}
           />
         </AppSidebarSection>
 

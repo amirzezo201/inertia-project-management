@@ -27,6 +27,15 @@ class RichDescriptionTest < ActiveSupport::TestCase
     assert_equal "<p>Hialert(1) <a>x</a></p>", task.description # script tag removed, its text is inert
   end
 
+  test "keeps images of the app's own attachments and drops any other image" do
+    own = %(<img src="/rails/active_storage/blobs/redirect/abc123/diagram.png" alt="diagram.png">)
+
+    task = tasks(:setup_ci)
+    task.update!(description: %(<p>#{own}<img src="https://tracker.example/pixel.gif"></p>))
+
+    assert_equal "<p>#{own}</p>", task.description
+  end
+
   test "an empty editor document is stored as nil" do
     milestone = milestones(:launch)
     milestone.update!(description: "<p></p>")

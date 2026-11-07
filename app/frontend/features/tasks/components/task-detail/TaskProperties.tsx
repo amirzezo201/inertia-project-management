@@ -1,10 +1,8 @@
-import { Link } from "@inertiajs/react"
 import { Fragment, type ReactNode } from "react"
 
 import { DatePill } from "@/components/common/fields/DatePill"
 import { PillSelect } from "@/components/common/fields/PillSelect"
 import { cn } from "@/lib/utils"
-import { taskPath } from "@/routes"
 
 import type { TaskShowProps } from "../../TaskDetailPage"
 import {
@@ -17,20 +15,18 @@ import { TaskEstimateField } from "./TaskEstimateField"
 import { TaskPropertyGroupHeading } from "./TaskPropertyGroupHeading"
 import { TaskPropertyRow } from "./TaskPropertyRow"
 
-type GroupKey = "state" | "people" | "planning" | "relations"
+type GroupKey = "state" | "people" | "planning"
 
 const GROUP_LABELS: Record<GroupKey, string> = {
   state: "State",
   people: "People",
   planning: "Planning",
-  relations: "Relations",
 }
 
 // The task's Properties: a two-column grid of name and control, split into
 // labelled groups. Every control saves on change.
 export function TaskProperties({
   task,
-  parent,
   statuses,
   milestones,
   users,
@@ -114,25 +110,6 @@ export function TaskProperties({
           />
         </TaskPropertyRow>,
       ],
-    },
-    {
-      key: "relations",
-      rows: parent
-        ? [
-            <TaskPropertyRow key="parent" label="Parent">
-              <Link
-                href={taskPath(parent.id)}
-                title={parent.title}
-                className="flex h-7 max-w-full items-center gap-1.5 rounded-full border px-2.5 text-sm hover:bg-accent"
-              >
-                <span className="shrink-0 text-muted-foreground text-xs">
-                  {parent.identifier}
-                </span>
-                <span className="truncate">{parent.title}</span>
-              </Link>
-            </TaskPropertyRow>,
-          ]
-        : [],
     },
   ]
   const visibleGroups = groups.filter((group) => group.rows.length > 0)

@@ -4,27 +4,14 @@ class TasksController < InertiaController
   before_action :set_project, only: :create
   before_action :set_task, only: %i[ show update destroy ]
 
-  # Huly-style view modes for task lists.
-  MODES = %w[ all active backlog ].freeze
-
-  def index
-    @pagy, @tasks = pagy(:countless, filter_by_mode(Task.all).in_category_order)
-
-    render inertia: {
-      tasks: InertiaRails.scroll(@pagy) { Tasks::IndexResource.serialize(@tasks) },
-      mode: mode,
-      statuses: SimpleResources::Status.serialize(Status.order(:position)),
-      milestones: SimpleResources::Milestone.serialize(Milestone.order(:target_date)),
-      users: OptionResource.serialize(User.order(:name))
-    }
-  end
-
   def show
     render inertia: {
       task: Tasks::ShowResource.serialize(@task),
       parent: (Tasks::IndexResource.serialize(@task.parent) if @task.parent),
       subtasks: Tasks::IndexResource.serialize(@task.subtasks.order(:number)),
       activity: Tasks::EventResource.serialize(@task.activity),
+      attachments: Tasks::AttachmentResource.serialize(@task.attachments_attachments.includes(:blob).order(:created_at)),
+      attachment_max_bytes: Task::MAX_ATTACHMENT_SIZE,
       project: Projects::ShowResource.serialize(@task.project),
       statuses: SimpleResources::Status.serialize(@task.project.statuses),
       milestones: SimpleResources::Milestone.serialize(@task.project.milestones.order(:target_date)),
@@ -62,18 +49,6 @@ class TasksController < InertiaController
 
     def set_task
       @task = Task.find(params[:id])
-    end
-
-    def filter_by_mode(tasks)
-      case mode
-      when "active" then tasks.active
-      when "backlog" then tasks.backlog
-      else tasks
-      end
-    end
-
-    def mode
-      MODES.include?(params[:mode]) ? params[:mode] : "all"
     end
 
     def task_params

@@ -16,7 +16,7 @@ import { TaskPriorityIcon } from "../TaskPriorityIcon"
 import { TaskStatusIcon } from "../TaskStatusIcon"
 
 // Outline pill shared by the card's meta badges.
-const PILL = "rounded-full px-1.5 py-0.5 text-[10px] text-muted-foreground"
+const PILL = "rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground"
 
 // One board card's content: identifier and priority, then status and title,
 // then meta badges and the assignee. The drag preview renders it too.

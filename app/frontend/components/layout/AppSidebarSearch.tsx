@@ -31,7 +31,6 @@ import {
   projectPath,
   projectsPath,
   settingsProfilePath,
-  tasksPath,
 } from "@/routes"
 
 interface PaletteItem {
@@ -76,12 +75,6 @@ export function AppSidebarSearch() {
           label: "My tasks",
           href: myTasksPath(),
           icon: <CircleUserRound />,
-        },
-        {
-          value: "all-tasks",
-          label: "All tasks",
-          href: tasksPath(),
-          icon: <ListTodo />,
         },
         {
           value: "projects",

@@ -150,6 +150,21 @@ export interface Task extends TaskSummary {
   updated_at: string
 }
 
+// Tasks::AttachmentResource: a file attached to a task.
+export interface TaskAttachment {
+  id: number
+  filename: string
+  content_type: string
+  byte_size: number
+  created_at: string
+  image: boolean
+  url: string
+  // The same file, sent as a download instead of opened.
+  download_url: string
+  // A 320px preview, for images only.
+  thumbnail_url: string | null
+}
+
 // Lookup props sent with every project page.
 export interface ProjectProps {
   project: Project

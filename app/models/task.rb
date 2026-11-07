@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Task < ApplicationRecord
-  include RichDescription, Eventable, Commentable, Positioned
+  include RichDescription, Eventable, Commentable, Positioned, Attachable
 
   belongs_to :project, touch: true
   belongs_to :parent, class_name: "Task", optional: true, counter_cache: :subtasks_count, touch: true
@@ -19,16 +19,14 @@ class Task < ApplicationRecord
   scope :in_categories, ->(*categories) { joins(:status).where(statuses: { category: categories }) }
   scope :active, -> { in_categories("unstarted", "started") }
   scope :backlog, -> { in_categories("backlog") }
-  # Backlog, Todo, In progress, Done, Canceled: the order lists group them in,
-  # so a paged list only ever adds rows to its last group.
-  scope :in_category_order, -> do
-    joins(:status).in_order_of(:"statuses.category", Status::CATEGORIES, filter: false).order(:project_id, :number)
-  end
 
   normalizes :estimation, with: -> { it.presence || 0 }, apply_to_nil: true
 
   validates :title, presence: true
   validate :belongs_to_same_project, :parent_not_a_subtask
+  # Sub-tasks are one level deep: a task is either a parent or a sub-task. Checked
+  # only when the parent changes, so sub-tasks nested before the rule stay editable.
+  validate :one_level_of_subtasks, if: :parent_id_changed?
 
   before_validation :apply_project_defaults, on: :create
   before_create :assign_number
@@ -67,6 +65,14 @@ class Task < ApplicationRecord
         end
 
         ancestor = ancestor.parent
+      end
+    end
+
+    def one_level_of_subtasks
+      if parent&.parent_id
+        errors.add(:parent, :invalid, message: "is itself a sub-task, and sub-tasks can't have sub-tasks")
+      elsif parent && subtasks.exists?
+        errors.add(:parent, :invalid, message: "can't be set on a task that has sub-tasks")
       end
     end
 

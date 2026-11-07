@@ -37,6 +37,11 @@ export function RichTextFormattingMenu({
   return (
     <BubbleMenu
       editor={editor}
+      // Text formatting only: not for a selected image, which has nothing to
+      // make bold and would have the menu cover the content above it.
+      shouldShow={({ editor, view, state }) =>
+        view.hasFocus() && !state.selection.empty && !editor.isActive("image")
+      }
       className="flex items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-lg/5"
     >
       <RichTextMenuButton

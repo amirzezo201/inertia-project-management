@@ -6,21 +6,33 @@ import { ActivitySection } from "@/components/common/activity/ActivitySection"
 import { ProjectLogo } from "@/components/common/ProjectLogo"
 import { PageHeader } from "@/components/common/page/PageHeader"
 import AppLayout from "@/components/layout/AppLayout"
+import { useFilePaste } from "@/hooks/useFilePaste"
 import { projectPath, taskCommentsPath, taskPath } from "@/routes"
-import type { ActivityEvent, ProjectProps, Task, TaskSummary } from "@/types"
+import type {
+  ActivityEvent,
+  ProjectProps,
+  Task,
+  TaskAttachment,
+  TaskSummary,
+} from "@/types"
 
 import { TaskActions } from "./components/task-detail/TaskActions"
+import { TaskAttachmentsSection } from "./components/task-detail/TaskAttachmentsSection"
 import { TaskDescriptionField } from "./components/task-detail/TaskDescriptionField"
+import { TaskParentLink } from "./components/task-detail/TaskParentLink"
 import { TaskProperties } from "./components/task-detail/TaskProperties"
 import { TaskSubtasksSection } from "./components/task-detail/TaskSubtasksSection"
 import { TaskTimestamps } from "./components/task-detail/TaskTimestamps"
 import { TaskTitleField } from "./components/task-detail/TaskTitleField"
+import { useTaskAttachmentUpload } from "./hooks/useTaskAttachmentUpload"
 
 export interface TaskShowProps extends ProjectProps {
   task: Task
   parent: TaskSummary | null
   subtasks: TaskSummary[]
   activity: ActivityEvent[]
+  attachments: TaskAttachment[]
+  attachment_max_bytes: number
 }
 
 export type SaveState = "idle" | "saving" | "saved"
@@ -31,9 +43,25 @@ export type SaveState = "idle" | "saving" | "saved"
 // there is no room for two columns, so the actions sit above the title and the
 // Properties under the description. Everything saves in place.
 export default function TaskShow(props: TaskShowProps) {
-  const { project, users, task, activity } = props
+  const {
+    project,
+    users,
+    task,
+    parent,
+    subtasks,
+    activity,
+    attachments,
+    attachment_max_bytes,
+  } = props
   const { errors } = usePage().props
   const [saveState, setSaveState] = useState<SaveState>("idle")
+  // One uploader for the Attachments section, the description, and files
+  // pasted anywhere else on the page.
+  const attachmentUpload = useTaskAttachmentUpload(
+    task.id,
+    attachment_max_bytes,
+  )
+  useFilePaste((files) => void attachmentUpload.upload(files))
   const savedTimer = useRef<number>(undefined)
 
   function save(attributes: Record<string, string>) {
@@ -71,6 +99,10 @@ export default function TaskShow(props: TaskShowProps) {
               href: projectPath(project.id),
               icon: <ListTodo />,
             },
+            // A sub-task's trail runs through its parent.
+            ...(parent
+              ? [{ title: parent.identifier, href: taskPath(parent.id) }]
+              : []),
             { title: task.identifier },
           ]}
         />
@@ -86,6 +118,8 @@ export default function TaskShow(props: TaskShowProps) {
               {actions}
             </div>
 
+            {parent && <TaskParentLink parent={parent} />}
+
             <TaskTitleField task={task} onSave={(title) => save({ title })} />
 
             <div className="mt-4">
@@ -93,6 +127,7 @@ export default function TaskShow(props: TaskShowProps) {
                 task={task}
                 users={users}
                 onSave={(description) => save({ description })}
+                uploadFiles={attachmentUpload.upload}
               />
             </div>
 
@@ -106,7 +141,21 @@ export default function TaskShow(props: TaskShowProps) {
               <TaskProperties {...props} onSave={save} />
             </div>
 
-            <TaskSubtasksSection {...props} />
+            {/* What hangs off the task: its work first, then its files. A
+                sub-task names its parent above the title instead, and has no
+                sub-tasks of its own (old nested ones still list theirs). */}
+            {(!parent || subtasks.length > 0) && (
+              <TaskSubtasksSection {...props} />
+            )}
+
+            <TaskAttachmentsSection
+              taskId={task.id}
+              attachments={attachments}
+              maxBytes={attachment_max_bytes}
+              onUpload={(files) => void attachmentUpload.upload(files)}
+              uploading={attachmentUpload.uploading}
+              error={attachmentUpload.error}
+            />
 
             <section className="mt-6 border-t pt-5">
               <ActivitySection

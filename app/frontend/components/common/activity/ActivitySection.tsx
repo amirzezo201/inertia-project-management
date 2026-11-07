@@ -9,7 +9,7 @@ import { getItem, setItem } from "@/utils/storage"
 import { ActivityCommentComposer } from "./ActivityCommentComposer"
 import { ActivityEntry } from "./ActivityEntry"
 
-type Tab = "all" | "activity" | "comments"
+type Tab = "activity" | "comments"
 
 const TAB_KEY = "runwell:activity-tab"
 const NEWEST_FIRST_KEY = "runwell:activity-newest-first"
@@ -20,37 +20,32 @@ interface ActivitySectionProps {
   commentsPath: string
 }
 
-// Plane's activity: All / Activity / Comments tabs, a sort toggle, a
-// timeline of changes and comment cards, and the comment box (below the
-// list when oldest-first, above it when newest-first).
+// A task's history in two tabs: Activity (the timeline of changes) and
+// Comments (comment cards and the comment box, below the list when
+// oldest-first, above it when newest-first), plus a sort toggle. Opens on
+// Comments, so the comment box is there from the start.
 export function ActivitySection({
   activity,
   users,
   commentsPath,
 }: ActivitySectionProps) {
-  const [tab, setTab] = useState<Tab>("all")
+  const [tab, setTab] = useState<Tab>("comments")
   const [newestFirst, setNewestFirst] = useState(false)
 
   useEffect(() => {
     const savedTab = getItem(TAB_KEY)
-    if (
-      savedTab === "all" ||
-      savedTab === "activity" ||
-      savedTab === "comments"
-    )
-      setTab(savedTab)
+    // A saved "all" (the tab this replaced) falls back to Comments.
+    if (savedTab === "activity" || savedTab === "comments") setTab(savedTab)
     setNewestFirst(getItem(NEWEST_FIRST_KEY) === "true")
   }, [])
 
   const visible = activity.filter((event) =>
-    tab === "all"
-      ? true
-      : tab === "comments"
-        ? event.action === "comment_created"
-        : event.action !== "comment_created",
+    tab === "comments"
+      ? event.action === "comment_created"
+      : event.action !== "comment_created",
   )
   const ordered = newestFirst ? [...visible].reverse() : visible
-  const showComposer = tab !== "activity"
+  const showComposer = tab === "comments"
   const composer = (
     <ActivityCommentComposer commentsPath={commentsPath} users={users} />
   )
@@ -67,7 +62,6 @@ export function ActivitySection({
           }}
         >
           <TabsList variant="underline">
-            <TabsTab value="all">All</TabsTab>
             <TabsTab value="activity">Activity</TabsTab>
             <TabsTab value="comments">Comments</TabsTab>
           </TabsList>

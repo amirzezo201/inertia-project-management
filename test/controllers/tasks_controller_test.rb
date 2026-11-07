@@ -6,37 +6,6 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
     @task = tasks(:setup_ci)
   end
 
-  test "index lists tasks across projects filtered by mode" do
-    get tasks_path(mode: "backlog")
-
-    assert_inertia_component "tasks/index"
-    assert_equal "backlog", inertia.props[:mode]
-    assert_equal [ "RUN-2" ], inertia.props[:tasks].map { it[:identifier] }
-  end
-
-  test "index sends one page of tasks" do
-    30.times { |i| projects(:runwell).tasks.create!(title: "Task #{i}", creator: users(:one)) }
-
-    get tasks_path
-
-    assert_equal Pagy::OPTIONS[:limit], inertia.props[:tasks].size
-  end
-
-  test "index sends the next page on request" do
-    30.times { |i| projects(:runwell).tasks.create!(title: "Task #{i}", creator: users(:one)) }
-
-    get tasks_path(page: 2)
-
-    assert_equal Task.count - Pagy::OPTIONS[:limit], inertia.props[:tasks].size
-  end
-
-  test "index past the last page is empty" do
-    get tasks_path(page: 9)
-
-    assert_response :success
-    assert_empty inertia.props[:tasks]
-  end
-
   test "show renders the task with its subtasks" do
     get task_path(@task)
 
@@ -47,6 +16,17 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
     assert_nil inertia.props[:parent]
     assert_equal [ "task_created", "comment_created" ], inertia.props[:activity].map { it[:action] }
     assert_equal "<p>Should we run the suite in parallel?</p>", inertia.props[:activity].last[:comment][:body]
+  end
+
+  test "show sends the task's attachments and the upload limit" do
+    get task_path(@task)
+
+    attachment = inertia.props[:attachments].sole
+    assert_equal "notes.txt", attachment[:filename]
+    assert_not attachment[:image]
+    assert_match %r{\A/rails/active_storage/blobs/redirect/}, attachment[:url]
+    assert_match "disposition=attachment", attachment[:download_url]
+    assert_equal Task::MAX_ATTACHMENT_SIZE, inertia.props[:attachment_max_bytes]
   end
 
   test "create adds a numbered task to the project" do

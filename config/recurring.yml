@@ -13,3 +13,8 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+  # Files the browser uploaded directly but no task ever attached (a closed tab
+  # mid-upload, an oversized file refused on attach).
+  purge_unattached_uploads:
+    command: "ActiveStorage::Blob.unattached.where(created_at: ..2.days.ago).find_each(&:purge_later)"
+    schedule: every day at 4am
