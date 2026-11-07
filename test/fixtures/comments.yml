@@ -1,0 +1,4 @@
+looks_good:
+  commentable: setup_ci (Task)
+  creator: two
+  body: "<p>Should we run the suite in parallel?</p>"

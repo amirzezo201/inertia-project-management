@@ -9,6 +9,8 @@ class User < ApplicationRecord
 
   has_many :sessions, dependent: :destroy
   has_many :assigned_tasks, class_name: "Task", foreign_key: :assignee_id, inverse_of: :assignee, dependent: :nullify
+  has_many :comments, foreign_key: :creator_id, inverse_of: :creator, dependent: :destroy
+  has_many :events, foreign_key: :creator_id, inverse_of: :creator, dependent: :destroy
 
   validates :name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }

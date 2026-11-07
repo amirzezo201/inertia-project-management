@@ -2,6 +2,7 @@ import { Head, router, usePage } from "@inertiajs/react"
 import { Copy, Ellipsis, Link2, Trash2 } from "lucide-react"
 import { useRef, useState } from "react"
 
+import { ActivitySection } from "@/components/activity/activity-section"
 import { DetailHeader } from "@/components/detail-header"
 import { DatePill, EstimatePill, PillSelect } from "@/components/property-pills"
 import { PropertyRow } from "@/components/property-row"
@@ -28,19 +29,29 @@ import { toastManager } from "@/components/ui/toast"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { useInitials } from "@/hooks/use-initials"
 import AppLayout from "@/layouts/app-layout"
-import { projectPath, taskPath } from "@/routes"
-import type { ProjectProps, Task } from "@/types"
+import { projectPath, taskCommentsPath, taskPath } from "@/routes"
+import type { ActivityEvent, ProjectProps, Task } from "@/types"
 
 interface TaskShowProps extends ProjectProps {
   task: Task
   parent: Task | null
   subtasks: Task[]
+  activity: ActivityEvent[]
 }
 
 // Huly's issue view: a document column (title, description, sub-tasks) and a
 // properties panel. Everything saves in place; the header shows "Saved".
 export default function TaskShow(props: TaskShowProps) {
-  const { project, statuses, milestones, users, task, parent, subtasks } = props
+  const {
+    project,
+    statuses,
+    milestones,
+    users,
+    task,
+    parent,
+    subtasks,
+    activity,
+  } = props
   const { errors } = usePage().props
   const [saved, setSaved] = useState(false)
   const savedTimer = useRef<number>(undefined)
@@ -150,6 +161,12 @@ export default function TaskShow(props: TaskShowProps) {
                 <p className="text-muted-foreground text-sm">No sub-tasks.</p>
               )}
             </section>
+
+            <ActivitySection
+              activity={activity}
+              users={users}
+              commentsPath={taskCommentsPath(task.id)}
+            />
           </div>
         </div>
 

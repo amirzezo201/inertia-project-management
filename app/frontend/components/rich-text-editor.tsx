@@ -1,6 +1,12 @@
 import { TaskItem, TaskList } from "@tiptap/extension-list"
+import { Mention } from "@tiptap/extension-mention"
 import { Placeholder } from "@tiptap/extensions"
-import { EditorContent, useEditor, useEditorState } from "@tiptap/react"
+import {
+  type Editor,
+  EditorContent,
+  useEditor,
+  useEditorState,
+} from "@tiptap/react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import {
@@ -14,8 +20,11 @@ import {
   Strikethrough,
 } from "lucide-react"
 import type { ReactNode } from "react"
+import { useRef } from "react"
 
+import { mentionSuggestion } from "@/components/mention-suggestion"
 import { cn } from "@/lib/utils"
+import type { UserSummary } from "@/types"
 
 interface RichTextEditorProps {
   content?: string | null
@@ -24,6 +33,17 @@ interface RichTextEditorProps {
   className?: string
   onChange?: (html: string) => void
   onBlur?: (html: string) => void
+  // Called on the submit key (see `submitOn`), e.g. to send a comment.
+  onSubmit?: (html: string) => void
+  // "enter" works like Huly's comment box: Enter sends, Shift+Enter breaks
+  // the line. "mod-enter" keeps Enter for new paragraphs (⌘↵ submits).
+  submitOn?: "enter" | "mod-enter"
+  // People offered when typing "@"; leave out to disable mentions.
+  mentions?: UserSummary[]
+  // Rendered under the writing area with access to the editor (toolbars).
+  footer?: (editor: Editor) => ReactNode
+  // Classes for the writing area itself (height, padding).
+  editorClassName?: string
 }
 
 // Match the server: drop trailing empty paragraphs; an empty document is "".
@@ -41,7 +61,20 @@ export function RichTextEditor({
   className,
   onChange,
   onBlur,
+  onSubmit,
+  submitOn = "mod-enter",
+  mentions,
+  footer,
+  editorClassName = "min-h-24",
 }: RichTextEditorProps) {
+  // The editor is configured once; read the latest values through refs.
+  const submitRef = useRef(onSubmit)
+  submitRef.current = onSubmit
+  const mentionsRef = useRef(mentions ?? [])
+  mentionsRef.current = mentions ?? []
+  const pickingMentionRef = useRef(false)
+  const htmlRef = useRef(content ?? "")
+
   const editor = useEditor({
     // SSR is enabled for Inertia pages; render the editor on the client only.
     immediatelyRender: false,
@@ -54,12 +87,44 @@ export function RichTextEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder }),
+      ...(mentions
+        ? [
+            Mention.configure({
+              suggestion: mentionSuggestion(
+                () => mentionsRef.current,
+                pickingMentionRef,
+              ),
+            }),
+          ]
+        : []),
     ],
     content: content ?? "",
     editorProps: {
-      attributes: { class: "rich-text min-h-24 outline-none" },
+      attributes: { class: cn("rich-text outline-none", editorClassName) },
+      handleKeyDown: (_view, event) => {
+        if (
+          event.key !== "Enter" ||
+          !submitRef.current ||
+          pickingMentionRef.current
+        ) {
+          return false
+        }
+
+        const withModifier = event.metaKey || event.ctrlKey
+        const submits =
+          submitOn === "enter" ? !event.shiftKey && !withModifier : withModifier
+        if (submits) {
+          event.preventDefault()
+          submitRef.current(htmlRef.current)
+          return true
+        }
+        return false
+      },
     },
-    onUpdate: ({ editor }) => onChange?.(serialize(editor.getHTML())),
+    onUpdate: ({ editor }) => {
+      htmlRef.current = serialize(editor.getHTML())
+      onChange?.(htmlRef.current)
+    },
     onBlur: ({ editor }) => onBlur?.(serialize(editor.getHTML())),
   })
 
@@ -67,6 +132,7 @@ export function RichTextEditor({
     <div className={cn("text-sm", className)}>
       {editor && <FormattingMenu editor={editor} />}
       <EditorContent editor={editor} />
+      {editor && footer?.(editor)}
     </div>
   )
 }

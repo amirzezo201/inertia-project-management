@@ -22,6 +22,8 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
     assert_equal users(:one).id, inertia.props[:task][:creator_id]
     assert_equal [ "RUN-2" ], inertia.props[:subtasks].map { it[:identifier] }
     assert_nil inertia.props[:parent]
+    assert_equal [ "task_created", "comment_created" ], inertia.props[:activity].map { it[:action] }
+    assert_equal "<p>Should we run the suite in parallel?</p>", inertia.props[:activity].last[:comment][:body]
   end
 
   test "create adds a numbered task to the project" do

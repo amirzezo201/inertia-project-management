@@ -10,7 +10,10 @@ module RichDescription
     ul ol li label input span div
   ].freeze
 
-  ALLOWED_ATTRIBUTES = %w[ href target rel data-type data-checked type checked ].freeze
+  ALLOWED_ATTRIBUTES = %w[
+    href target rel type checked
+    data-type data-checked data-id data-label data-mention-suggestion-char
+  ].freeze
 
   EMPTY_DOCUMENT = %r{\A(\s|<p>\s*</p>|<br>)*\z}
   TRAILING_EMPTY_PARAGRAPHS = %r{(<p>\s*</p>)+\z}

@@ -16,7 +16,8 @@ class TasksController < InertiaController
     render inertia: project_props(@task.project).merge(
       task: TaskResource.new(@task).to_h,
       parent: (TaskResource.new(@task.parent).to_h if @task.parent),
-      subtasks: TaskResource.new(@task.subtasks.order(:number)).to_h
+      subtasks: TaskResource.new(@task.subtasks.order(:number)).to_h,
+      activity: EventResource.new(@task.activity).to_h
     )
   end
 

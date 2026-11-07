@@ -11,6 +11,15 @@ class RichDescriptionTest < ActiveSupport::TestCase
     assert_equal html, task.description
   end
 
+  test "keeps @mentions from the editor" do
+    html = %(<p>Hey <span data-type="mention" data-id="2" data-label="Another User" data-mention-suggestion-char="@">@Another User</span></p>)
+
+    task = tasks(:setup_ci)
+    task.update!(description: html)
+
+    assert_equal html, task.description
+  end
+
   test "strips scripts, event handlers, and javascript links" do
     task = tasks(:setup_ci)
     task.update!(description: '<p onclick="steal()">Hi<script>alert(1)</script> <a href="javascript:alert(1)">x</a></p>')

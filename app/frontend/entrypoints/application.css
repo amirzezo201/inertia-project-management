@@ -399,3 +399,10 @@
     }
   }
 }
+
+/* @mentions in rich text, like Huly's person references. */
+@layer components {
+  .rich-text [data-type="mention"] {
+    @apply rounded-sm bg-primary/8 px-0.5 font-medium text-primary;
+  }
+}

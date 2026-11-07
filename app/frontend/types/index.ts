@@ -126,3 +126,25 @@ export interface ProjectProps {
   milestones: Milestone[]
   users: UserSummary[]
 }
+
+export interface Comment {
+  id: number
+  body: string
+  creator_id: number
+  edited_at: string | null
+  created_at: string
+}
+
+// One entry in a task's activity feed (Huly's activity messages).
+export interface ActivityEvent {
+  id: number
+  action:
+    | "task_created"
+    | "task_updated"
+    | "task_subtask_added"
+    | "comment_created"
+  creator_id: number
+  particulars: Record<string, string | number | null>
+  created_at: string
+  comment: Comment | null
+}

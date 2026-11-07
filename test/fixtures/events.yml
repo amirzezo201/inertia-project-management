@@ -1,0 +1,15 @@
+setup_ci_created:
+  project: runwell
+  creator: one
+  eventable: setup_ci (Task)
+  action: task_created
+  particulars: {}
+  created_at: <%= 2.days.ago.to_fs(:db) %>
+
+looks_good_created:
+  project: runwell
+  creator: two
+  eventable: looks_good (Comment)
+  action: comment_created
+  particulars: {}
+  created_at: <%= 1.day.ago.to_fs(:db) %>

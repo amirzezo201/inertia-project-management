@@ -20,7 +20,11 @@ Rails.application.routes.draw do
     resources :tasks, only: [ :create ]
     resources :milestones, only: [ :index, :create ]
   end
-  resources :tasks, only: [ :index, :show, :update, :destroy ]
+  resources :tasks, only: [ :index, :show, :update, :destroy ] do
+    scope module: :tasks do
+      resources :comments, only: [ :create, :update, :destroy ], shallow: true
+    end
+  end
   resource :my_tasks, only: :show
   resources :milestones, only: [ :show, :update, :destroy ]
 

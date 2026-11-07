@@ -10,7 +10,33 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_120003) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_130001) do
+  create_table "comments", force: :cascade do |t|
+    t.string "commentable_type", null: false
+    t.integer "commentable_id", null: false
+    t.integer "creator_id", null: false
+    t.text "body", null: false
+    t.datetime "edited_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["commentable_type", "commentable_id"], name: "index_comments_on_commentable"
+    t.index ["creator_id"], name: "index_comments_on_creator_id"
+  end
+
+  create_table "events", force: :cascade do |t|
+    t.integer "project_id", null: false
+    t.integer "creator_id", null: false
+    t.string "eventable_type", null: false
+    t.integer "eventable_id", null: false
+    t.string "action", null: false
+    t.json "particulars", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["creator_id"], name: "index_events_on_creator_id"
+    t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable"
+    t.index ["project_id"], name: "index_events_on_project_id"
+  end
+
   create_table "milestones", force: :cascade do |t|
     t.integer "project_id", null: false
     t.string "name", null: false
